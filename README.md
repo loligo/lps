@@ -1,5 +1,12 @@
 # lps
-Code and files related to the Local Position System boards from Loligo
+Code and files related to the Local Position System boards from Loligo (http://shop.loligo.se/products/store)
 
+Installing with board manager
+-----------------------------
+Add the following url to the list of additional board managers under file/preferences: 
+https://github.com/loligo/lps/raw/master/package_loligo_lps_index.json
+
+Installing without the board manager
+------------------------------------
 place a symlink in your arduino/hardware directory pointing to this directory. For example:
 sudo ln -s ~/HOME/git/lps.git/ /usr/share/arduino/hardware/lps
