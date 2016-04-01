@@ -110,11 +110,15 @@ catkin_package(
 ## Build ##
 ###########
 
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x")
+
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  /usr/local/include/loligo/core
+  /usr/local/include/loligo/serial_cobs
 )
 
 ## Declare a C++ library
@@ -128,16 +132,18 @@ include_directories(
 # add_dependencies(lps ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(lps_node src/lps_node.cpp)
+add_executable(lps_node cpp/serial_talker.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(lps_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(lps_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(lps_node
+  ${catkin_LIBRARIES}
+  libserial_cobs.so
+  libloligo_core.so
+)
 
 #############
 ## Install ##
