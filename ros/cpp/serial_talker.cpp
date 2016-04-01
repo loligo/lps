@@ -14,18 +14,6 @@
 #include "std_msgs/String.h"
 #include <lps/LPSRange.h>
 
-// System V IPC
-#include <sys/shm.h>		//Used for shared memory
-#include <sys/sem.h>		//Used for semaphores
-
-union semun {
-    int              val;    /* Value for SETVAL */
-    struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
-    unsigned short  *array;  /* Array for GETALL, SETALL */
-    struct seminfo  *__buf;  /* Buffer for IPC_INFO
-                                (Linux-specific) */
-};
-
 #include <math.h>
 #include <loligo/core/Options.h>
 #include <loligo/core/Log.h>
@@ -144,7 +132,7 @@ int main(int argc, char *argv[])
                 size_t plen = _s[i]->read_packet(result, sizeof(result)-1);
                 if (plen == 0) continue;
                 if (plen < 0) continue;
-                double t = ros::Time::now().toSec();
+                ros::Time t = ros::Time::now();
                 
                 Packet p;
                 bool preadok = p.readFrom((uint8_t*)result, plen);
@@ -152,15 +140,14 @@ int main(int argc, char *argv[])
                 if (p.type() != PACKET_TYPE_RANGE) continue;
                 
                 RangePacket rp(p);
-                Log::print(LOG_INFO, "Received range from %x, anchor_id=%x\n", rp.from(), rp.anchorid());
                 if (rp.anchorid() > 0xff) continue;
-                ROS_INFO("%.2x->%.2x %d",rp.from(),rp.anchorid(),rp.dist());
 
                 lps::LPSRange rangemsg;
                 rangemsg.tag_id=rp.from();
                 rangemsg.dist_mm=rp.dist();
                 rangemsg.anchor_id=rp.anchorid();
                 rangemsg.power=rp.power();
+                ROS_INFO("%.2x->%.2x %6dmm",rp.from(),rp.anchorid(),rp.dist());
 
                 lps_pub.publish(rangemsg);
                 didsomething = true;
