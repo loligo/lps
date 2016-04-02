@@ -34,7 +34,7 @@ union semun {
 #include <Log.h>
 #include <StringUtils.h>
 
-//#include <loligo/db/MysqlWrap.h>
+#include <loligo/db/MysqlWrap.h>
 #include <loligo/slam/SvgMap.h>
 #include <loligo/slam/AnchorPoint.h>
 #include <gtsam/geometry/Point3.h>
@@ -56,7 +56,7 @@ struct shared_data {
     char json[2048];
 };
 
-//MysqlWrap *_mw = 0;
+MysqlWrap *_mw = 0;
 
 
 static struct Option options[] = 
@@ -431,13 +431,16 @@ void addLPSRange(lps_range_t &lr)
     updateShm();
 }
 
-#if 0
 void updateFromMysql()
 {
     if (!_mw) return;
     string sql = "SELECT name,value FROM config";
         
-    if (!_mw->query(sql)) return;
+    if (!_mw->query(sql)) 
+    {
+        ROS_ERROR("updateFromMysql: failed sql\n");
+        return;
+    }
         
     // Use all the config to update stuff
     int nrows = _mw->num_rows();
@@ -455,20 +458,26 @@ void updateFromMysql()
                 d[j] = strtof(v[j].c_str(), NULL);
 
             unsigned tag_id = strtol(r[0]+3, NULL, 0);
-            Log::print(LOG_VERBOSE, "updateFromMysql: tag_id=%d, (%f,%f,%f)\n", tag_id, d[0], d[1], d[2]);
+            ROS_INFO("updateFromMysql: tag_id=%d, (%f,%f,%f)\n", tag_id, d[0], d[1], d[2]);
             if (tag_id<_tags.size())
                 _tags[tag_id] = Point3(d);
+        }
+
+        if (strstr(r[0], "MapArea") != 0)
+        {
+            ROS_INFO("updateFromMysql: maparea='%s'\n", r[1]);
+            _map.clearFloorspace();
+            _map.addPath(r[1],0.0);
         }
     }
         
 }
-#endif
+
 void initStructures()
 {
     _anchor_ranges.resize(10);
     _anchors.resize(10);
     
-    //init_posix_shm();
     init_systemV_ipc();
     
     _tags.resize(4, Point3(0,0,0));
@@ -484,8 +493,6 @@ void initStructures()
 double _updated_map_and_tags = 0;
 void lpsrangeCallback(const lps::LPSRange::ConstPtr& msg)
 {
-    //ROS_INFO("I heard: [%s]", msg->data.c_str());
-
     char result[512];
     lps_range_t lr;
     lr.t=msg->header.stamp.toSec();
@@ -499,7 +506,7 @@ void lpsrangeCallback(const lps::LPSRange::ConstPtr& msg)
     if (ros::Time::now().toSec() - _updated_map_and_tags > 30.0)
     {
         _updated_map_and_tags = ros::Time::now().toSec();
-        //updateFromMysql();
+        updateFromMysql();
     }
 }
 
@@ -526,13 +533,12 @@ int main(int argc, char *argv[])
     initStructures();
     ros::Subscriber sub = n.subscribe("lpsranges", 100, lpsrangeCallback);
 
-    //ROS_INFO("MysqlThread: Connecting to database\n");
-    //_mw = new MysqlWrap("localhost", "md_usr", "peoplesleepingbetweensheets", "mddb");
-    //_mw->connect();
+    ROS_INFO("MysqlThread: Connecting to database\n");
+    _mw = new MysqlWrap("localhost", "md_usr", "peoplesleepingbetweensheets", "mddb");
+    _mw->connect();
 
     string program_ident;
 
-#if 0
     // Load map if there is one
     SvgMap map;
     if (opts.defined("map"))
@@ -540,7 +546,7 @@ int main(int argc, char *argv[])
         map.init(opts.getString("map"));
         addMap(map);
     }
-#endif    
+
     ros::spin();
 
 	return 0;
