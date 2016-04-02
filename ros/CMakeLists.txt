@@ -117,6 +117,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x")
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  /usr/local/include/loligo/
   /usr/local/include/loligo/core
   /usr/local/include/loligo/serial_cobs
 )
@@ -132,18 +133,38 @@ include_directories(
 # add_dependencies(lps ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(lps_node cpp/serial_talker.cpp)
+add_executable(serialtalker cpp/serial_talker.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(lps_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(serialtalker ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(lps_node
+target_link_libraries(serialtalker
   ${catkin_LIBRARIES}
   libserial_cobs.so
   libloligo_core.so
 )
+
+
+## Declare a C++ executable
+add_executable(locationtracker 
+  cpp/locationtracker.cpp)
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+add_dependencies(locationtracker ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(locationtracker
+  ${catkin_LIBRARIES}
+  libloligo_slam.so
+  libloligo_core.so
+  libloligo_db.so
+  rt
+  gtsam
+)
+
 
 #############
 ## Install ##

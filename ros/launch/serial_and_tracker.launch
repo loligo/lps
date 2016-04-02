@@ -1,0 +1,8 @@
+<launch>
+  <group name="wg">
+    <node pkg="lps" type="serialtalker" name="serialtalker">
+    </node>
+    <node pkg="lps" type="locationtracker" name="locationtracker">
+    </node>
+  </group>
+</launch>

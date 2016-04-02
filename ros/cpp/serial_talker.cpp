@@ -107,6 +107,7 @@ int main(int argc, char *argv[])
 
     vector<int> stimeouts(_s.size(),0);
     char result[512];
+    uint32_t count=0;
     while (ros::ok())
     {
         Log::print(LOG_INFO, "Loop start\n");
@@ -143,6 +144,8 @@ int main(int argc, char *argv[])
                 if (rp.anchorid() > 0xff) continue;
 
                 lps::LPSRange rangemsg;
+                rangemsg.header.stamp=t;
+                rangemsg.header.seq=count++;
                 rangemsg.tag_id=rp.from();
                 rangemsg.dist_mm=rp.dist();
                 rangemsg.anchor_id=rp.anchorid();
