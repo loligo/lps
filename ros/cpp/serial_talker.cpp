@@ -105,6 +105,9 @@ int main(int argc, char *argv[])
         addSerialDevice(dev,speed);
     }
 
+    // Sleep to allow arduinos to exit bootloader
+    ros::Duration(2.0).sleep();
+
     vector<int> stimeouts(_s.size(),0);
     char result[512];
     uint32_t count=0;
@@ -116,19 +119,20 @@ int main(int argc, char *argv[])
         {
             if (stimeouts[i]>10) continue;
             // Trigger transmission
+            ROS_INFO("Trigger %d",i); 
             uint8_t d=0;_s[i]->write_bytes(&d,1);
             usleep(10000);
             if (!_s[i]->read_available())
             {
-                if (_s[i]->wait_for_data(50) != 1)
+                if (_s[i]->wait_for_data(200) != 1)
                 {
                     ROS_DEBUG("%d no data?\n",i);
-                    stimeouts[i]++;
+                    //stimeouts[i]++;
                     continue;
                 }
             }
             int n=20;
-            while (_s[i]->wait_for_data(50) > 0 && n-->0)
+            while (_s[i]->wait_for_data(20) > 0 && n-->0)
             {
                 size_t plen = _s[i]->read_packet(result, sizeof(result)-1);
                 if (plen == 0) continue;
@@ -141,6 +145,7 @@ int main(int argc, char *argv[])
                 if (p.type() != PACKET_TYPE_RANGE) continue;
                 
                 RangePacket rp(p);
+                ROS_INFO("%.2x->%.2x %6dmm",rp.from(),rp.anchorid(),rp.dist());
                 if (rp.anchorid() > 0xff) continue;
 
                 lps::LPSRange rangemsg;
@@ -150,7 +155,7 @@ int main(int argc, char *argv[])
                 rangemsg.dist_mm=rp.dist();
                 rangemsg.anchor_id=rp.anchorid();
                 rangemsg.power=rp.power();
-                ROS_INFO("%.2x->%.2x %6dmm",rp.from(),rp.anchorid(),rp.dist());
+                //ROS_INFO("%.2x->%.2x %6dmm",rp.from(),rp.anchorid(),rp.dist());
 
                 lps_pub.publish(rangemsg);
                 didsomething = true;

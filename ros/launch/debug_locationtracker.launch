@@ -1,0 +1,6 @@
+<launch>
+  <group>
+    <node pkg="lps" type="serialtalker" name="serialtalker"  launch-prefix="xterm -e " respawn="true" respawn_delay="5"></node>
+    <node pkg="lps" type="locationtracker" name="locationtracker" launch-prefix="xterm -e gdb --args" respawn="true" respawn_delay="5"></node>
+  </group>
+</launch>

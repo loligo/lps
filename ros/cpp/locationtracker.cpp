@@ -18,8 +18,10 @@
 #include <lps/LPSRange.h>
 
 // System V IPC
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
 #include <sys/shm.h>		//Used for shared memory
-#include <sys/sem.h>		//Used for semaphores
 
 union semun {
     int              val;    /* Value for SETVAL */
@@ -44,7 +46,6 @@ union semun {
 // System V IPC
 #define	SEMAPHORE_KEY			0x282828 //Semaphore unique key
 #define	SHARED_MEMORY_KEY 		0x292929 //Shared memory unique key
-
 
 using namespace gtsam;
 
@@ -189,39 +190,6 @@ void init_posix_shm()
     }
 };
 
-void init_systemV_ipc()
-{
-    _semaphore1_id = semget((key_t)SEMAPHORE_KEY, 1, 0666 | IPC_CREAT);
-
-    union semun sem_union_init;
-    sem_union_init.val = 1;
-    if (semctl(_semaphore1_id, 0, SETVAL, sem_union_init) == -1)
-    {
-        ROS_ERROR("Creating semaphore failed to initialize\n");
-        exit(EXIT_FAILURE);
-    }
-        
-    //Create the shared memory
-    _shared_memory1_id = shmget((key_t)SHARED_MEMORY_KEY, sizeof(struct shared_data), 0666 | IPC_CREAT);		//Shared memory key , Size in bytes, Permission flags
-    if (_shared_memory1_id == -1)
-    {
-        ROS_ERROR("Shared memory shmget() failed\n");
-        exit(EXIT_FAILURE);
-    }
-        
-    //Make the shared memory accessible to the program
-    _shared_memory1_pointer = shmat(_shared_memory1_id, (void *)0, 0);
-    if (_shared_memory1_pointer == (void *)-1)
-    {
-        ROS_ERROR("Shared memory shmat() failed\n");
-        exit(EXIT_FAILURE);
-    }
-    ROS_INFO("Shared memory attached at %p\n", _shared_memory1_pointer);
-        
-    //Assign the shared_memory segment
-    _shared_memory1 = (struct shared_data *)_shared_memory1_pointer;
-}
-    
 int semaphore1_get_access(void)
 {
     struct sembuf sem_b;
@@ -230,7 +198,8 @@ int semaphore1_get_access(void)
     sem_b.sem_flg = SEM_UNDO;
     if (semop(_semaphore1_id, &sem_b, 1) == -1)		//Wait until free
     {
-        ROS_ERROR("semaphore1_get_access failed\n");
+        perror("sem acces");
+        ROS_ERROR("semaphore1_get_access failed: id=%d", _semaphore1_id);
         return(0);
     }
     return(1);
@@ -250,6 +219,47 @@ int semaphore1_release_access(void)
     return(1);
 }
 
+void init_systemV_ipc()
+{
+    _semaphore1_id = semget((key_t)SEMAPHORE_KEY, 3, 0666 | IPC_CREAT);
+    if (_semaphore1_id == -1)
+    {
+        perror("semget");
+        ROS_ERROR("Could not create semaphore\n");
+        exit(EXIT_FAILURE);
+    }
+    ROS_INFO("semaphore: %d\n", _semaphore1_id);
+
+    union semun sem_union_init;
+    sem_union_init.val = 1;
+    if (semctl(_semaphore1_id, 0, SETVAL, sem_union_init) == -1)
+    {
+        perror("semaphore failed");
+        ROS_ERROR("Creating semaphore failed to initialize\n");
+        exit(EXIT_FAILURE);
+    }
+        
+    //Create the shared memory
+    _shared_memory1_id = shmget((key_t)SHARED_MEMORY_KEY, sizeof(struct shared_data), 0666 | IPC_CREAT);		//Shared memory key , Size in bytes, Permission flags
+    if (_shared_memory1_id == -1)
+    {
+        ROS_ERROR("Shared memory shmget() failed");
+        exit(EXIT_FAILURE);
+    }
+        
+    //Make the shared memory accessible to the program
+    _shared_memory1_pointer = shmat(_shared_memory1_id, (void *)0, 0);
+    if (_shared_memory1_pointer == (void *)-1)
+    {
+        ROS_ERROR("Shared memory shmat() failed\n");
+        exit(EXIT_FAILURE);
+    }
+    ROS_INFO("Shared memory attached at %p\n", _shared_memory1_pointer);
+        
+    //Assign the shared_memory segment
+    _shared_memory1 = (struct shared_data *)_shared_memory1_pointer;
+}
+    
 void deinit()
 {
     ROS_INFO("Destructor Start\n");
@@ -475,9 +485,11 @@ void updateFromMysql()
 
 void initStructures()
 {
+    ROS_INFO("initStructures");
     _anchor_ranges.resize(10);
     _anchors.resize(10);
     
+    //init_posix_shm();
     init_systemV_ipc();
     
     _tags.resize(4, Point3(0,0,0));
@@ -487,6 +499,7 @@ void initStructures()
     _tags[3] = Point3(3.05000,3.8000,2.25000);
     
     updateShm();
+    ROS_INFO("initStructures: done");
 }
 
 
@@ -518,24 +531,16 @@ int main(int argc, char *argv[])
     // initialize logging
     Log::init(&opts);
 
-    if (opts("help"))
-    {
-        std::cerr << "lpsmonitor - monitor lps tags." << std::endl;
-        std::cerr << "Options:" << std::endl;
-
-        opts.printHelp(0);
-        return 0;
-    }
-
     ros::init(argc, argv, "locationtracker");
     ros::NodeHandle n;
     
-    initStructures();
     ros::Subscriber sub = n.subscribe("lpsranges", 100, lpsrangeCallback);
 
     ROS_INFO("MysqlThread: Connecting to database\n");
     _mw = new MysqlWrap("localhost", "md_usr", "peoplesleepingbetweensheets", "mddb");
     _mw->connect();
+
+    initStructures();
 
     string program_ident;
 
@@ -548,6 +553,7 @@ int main(int argc, char *argv[])
     }
 
     ros::spin();
+    deinit();
 
 	return 0;
 }
