@@ -419,7 +419,6 @@ void updateLocations()
             _anchors[i].setLocation(best_solution);
             Log::print(LOG_VERBOSE, "LPSThread::updateLocations[%d] new location (%.3f,%.3f,%.3f) err=%.3f\n", 
                        i, best_solution.x(),best_solution.y(),best_solution.z(), best_err);
-            updateShm();
         }
     }
 }
@@ -438,7 +437,6 @@ void addLPSRange(lps_range_t &lr)
     while (_anchor_ranges[lr.anchor_id].size() > 20) 
         _anchor_ranges[lr.anchor_id].pop_front();
     Log::print(LOG_INFO, "anchor[%d]: size=%d\n",lr.anchor_id,_anchor_ranges[lr.anchor_id].size());
-    updateShm();
 }
 
 void updateFromMysql()
@@ -503,7 +501,6 @@ void initStructures()
 }
 
 
-double _updated_map_and_tags = 0;
 void lpsrangeCallback(const lps::LPSRange::ConstPtr& msg)
 {
     char result[512];
@@ -515,12 +512,6 @@ void lpsrangeCallback(const lps::LPSRange::ConstPtr& msg)
     addLPSRange(lr);
 
     updateLocations();
-
-    if (ros::Time::now().toSec() - _updated_map_and_tags > 30.0)
-    {
-        _updated_map_and_tags = ros::Time::now().toSec();
-        updateFromMysql();
-    }
 }
 
 
@@ -552,7 +543,20 @@ int main(int argc, char *argv[])
         addMap(map);
     }
 
-    ros::spin();
+    double updated_map_and_tags = 0;
+    ros::Rate loop_rate(5);
+    while (ros::ok())
+    {
+        if (ros::Time::now().toSec() - updated_map_and_tags > 30.0)
+        {
+            updated_map_and_tags = ros::Time::now().toSec();
+            updateFromMysql();
+        }
+
+        ros::spinOnce();
+        updateShm();
+        loop_rate.sleep();
+    }
     deinit();
 
 	return 0;
