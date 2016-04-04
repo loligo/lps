@@ -1,6 +1,6 @@
 <launch>
   <group>
-    <node pkg="lps" type="serialtalker" name="serialtalker" respawn="true" respawn_delay="5"></node>
+    <node pkg="lps" type="serialtalker" name="serialtalker" respawn="true" respawn_delay="5" output="screen"></node>
     <node pkg="lps" type="locationtracker" name="locationtracker" respawn="true" respawn_delay="5"></node>
   </group>
 </launch>
