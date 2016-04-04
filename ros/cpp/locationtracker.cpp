@@ -544,7 +544,7 @@ int main(int argc, char *argv[])
     }
 
     double updated_map_and_tags = 0;
-    ros::Rate loop_rate(5);
+    ros::Rate loop_rate(25);
     while (ros::ok())
     {
         if (ros::Time::now().toSec() - updated_map_and_tags > 30.0)
