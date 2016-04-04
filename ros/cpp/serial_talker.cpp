@@ -23,7 +23,7 @@
 
 static struct Option options[] = 
 {
-    { "device",              OpType(OP_REQ),    "/dev/ttyUSB*",
+    { "device",              OpType(OP_REQ),    "/dev/ttyUSB.tag*",
       "tty interface for lps, generally /dev/ttyUSBx"
     },
     { "device-speed",        OpType(OP_REQ),    "115200",
@@ -108,10 +108,17 @@ int main(int argc, char *argv[])
     // Sleep to allow arduinos to exit bootloader
     ros::Duration(2.0).sleep();
 
+    // If there are no serial devices, there's no point in running
+    if (_s.size() == 0)
+    {
+        ROS_ERROR("No Serial devices to listen to, exiting");
+        exit(2);
+    }
+
     vector<int> stimeouts(_s.size(),0);
     char result[512];
     uint32_t count=0;
-    while (ros::ok())
+    while (ros::ok() && _s.size()>0)
     {
         Log::print(LOG_INFO, "Loop start\n");
         bool didsomething = false;
@@ -119,24 +126,36 @@ int main(int argc, char *argv[])
         {
             if (stimeouts[i]>10) continue;
             // Trigger transmission
+            _s[i]->clearBuffers();
             ROS_INFO("Trigger %d",i); 
-            uint8_t d=0;_s[i]->write_bytes(&d,1);
-            usleep(10000);
+            uint8_t d=0;_s[i]->write_bytes(&d,1);usleep(10000);
+
             if (!_s[i]->read_available())
             {
-                if (_s[i]->wait_for_data(200) != 1)
+                ROS_INFO("Waiting for %d",i); 
+                if (_s[i]->wait_for_data(100) < 1)
                 {
-                    ROS_DEBUG("%d no data?\n",i);
+                    ROS_INFO("%d no data?\n",i);
                     //stimeouts[i]++;
                     continue;
                 }
             }
-            int n=20;
-            while (_s[i]->wait_for_data(20) > 0 && n-->0)
+
+            int n=30;
+            while (n-->0)
             {
+                result[0]=0xff;
                 size_t plen = _s[i]->read_packet(result, sizeof(result)-1);
-                if (plen == 0) continue;
-                if (plen < 0) continue;
+                if (plen == 0)
+                {
+                    _s[i]->wait_for_data(50);
+                    continue;
+                }
+                if (plen < 0) 
+                {
+                    ROS_INFO("plen<0");
+                    continue;
+                }
                 ros::Time t = ros::Time::now();
                 
                 Packet p;
@@ -145,7 +164,8 @@ int main(int argc, char *argv[])
                 if (p.type() != PACKET_TYPE_RANGE) continue;
                 
                 RangePacket rp(p);
-                ROS_INFO("%.2x->%.2x %6dmm",rp.from(),rp.anchorid(),rp.dist());
+                ROS_INFO("%.2x->%.2x %6dmm %.1fdbm",rp.from(),rp.anchorid(),rp.dist(),rp.power());
+                if (rp.anchorid() == 0xeeee) break;
                 if (rp.anchorid() > 0xff) continue;
 
                 lps::LPSRange rangemsg;
@@ -155,7 +175,6 @@ int main(int argc, char *argv[])
                 rangemsg.dist_mm=rp.dist();
                 rangemsg.anchor_id=rp.anchorid();
                 rangemsg.power=rp.power();
-                //ROS_INFO("%.2x->%.2x %6dmm",rp.from(),rp.anchorid(),rp.dist());
 
                 lps_pub.publish(rangemsg);
                 didsomething = true;
