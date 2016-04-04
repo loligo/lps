@@ -164,8 +164,8 @@ int main(int argc, char *argv[])
                 if (p.type() != PACKET_TYPE_RANGE) continue;
                 
                 RangePacket rp(p);
-                ROS_INFO("%.2x->%.2x %6dmm %.1fdbm",rp.from(),rp.anchorid(),rp.dist(),rp.power());
                 if (rp.anchorid() == 0xeeee) break;
+                ROS_INFO("%.2x->%.2x %6dmm %.1fdbm",rp.from(),rp.anchorid(),rp.dist(),rp.power());
                 if (rp.anchorid() > 0xff) continue;
 
                 lps::LPSRange rangemsg;
