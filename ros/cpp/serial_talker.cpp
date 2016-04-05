@@ -125,15 +125,20 @@ int main(int argc, char *argv[])
         for (unsigned i=0;i<_s.size();i++)
         {
             if (stimeouts[i]>10) continue;
-            // Trigger transmission
+
+            // Make sure to empty buffers 
+            while (_s[i]->read_packet(result, sizeof(result)-1)!=0);
+            _s[i]->flush();
             _s[i]->clearBuffers();
+
+            // Trigger transmission
             ROS_INFO("Trigger %d",i); 
             uint8_t d=0;_s[i]->write_bytes(&d,1);usleep(10000);
 
             if (!_s[i]->read_available())
             {
                 ROS_INFO("Waiting for %d",i); 
-                if (_s[i]->wait_for_data(100) < 1)
+                if (_s[i]->wait_for_data(300) < 1)
                 {
                     ROS_INFO("%d no data?\n",i);
                     //stimeouts[i]++;
