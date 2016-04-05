@@ -124,8 +124,6 @@ int main(int argc, char *argv[])
         bool didsomething = false;
         for (unsigned i=0;i<_s.size();i++)
         {
-            if (stimeouts[i]>10) continue;
-
             // Make sure to empty buffers 
             while (_s[i]->read_packet(result, sizeof(result)-1)!=0);
             _s[i]->flush();
@@ -137,7 +135,7 @@ int main(int argc, char *argv[])
             int ret = _s[i]->write_bytes(&d,1);
             if (ret < 0 || _s[i]->read_eof()) 
             {
-                ROS_ERROR("Had to reopen serial device");
+                ROS_ERROR("Had to reopen '%s'", _s[i]->device().c_str());
                 _s[i]->reopenDevice();
                 continue;
             }
@@ -150,10 +148,17 @@ int main(int argc, char *argv[])
                 if (_s[i]->wait_for_data(200) < 1)
                 {
                     ROS_INFO("%d no data?\n",i);
-                    //stimeouts[i]++;
+                    if (++stimeouts[i]>10)
+                    {
+                        ROS_ERROR("Reopened '%s' - no data for 10 cycles", _s[i]->device().c_str());
+                        stimeouts[i] = 0;
+                        _s[i]->reopenDevice();
+                    }
                     continue;
                 }
             }
+            // We received something, reset timeouts
+            stimeouts[i] = 0;
 
             int n=100;
             while (n-->0 && (ros::Time::now().toSec() - trigger_time < 0.300))
