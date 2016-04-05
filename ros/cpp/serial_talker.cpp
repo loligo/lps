@@ -23,7 +23,7 @@
 
 static struct Option options[] = 
 {
-    { "device",              OpType(OP_REQ),    "/dev/ttyUSB.tag*",
+    { "device",              OpType(OP_REQ),    "/dev/ttyUSB.tag0,/dev/ttyUSB.tag1,/dev/ttyUSB.tag2,/dev/ttyUSB.tag3",
       "tty interface for lps, generally /dev/ttyUSBx"
     },
     { "device-speed",        OpType(OP_REQ),    "115200",
@@ -133,7 +133,16 @@ int main(int argc, char *argv[])
 
             // Trigger transmission
             ROS_INFO("Trigger %d",i); 
-            uint8_t d=0;_s[i]->write_bytes(&d,1);usleep(10000);
+            uint8_t d=0;
+            int ret = _s[i]->write_bytes(&d,1);
+            if (ret < 0 || _s[i]->read_eof()) 
+            {
+                ROS_ERROR("Had to reopen serial device");
+                _s[i]->reopenDevice();
+                continue;
+            }
+            double trigger_time = ros::Time::now().toSec();
+            usleep(10000);
 
             if (!_s[i]->read_available())
             {
@@ -147,7 +156,7 @@ int main(int argc, char *argv[])
             }
 
             int n=100;
-            while (n-->0)
+            while (n-->0 && (ros::Time::now().toSec() - trigger_time < 0.300))
             {
                 result[0]=0xff;
                 size_t plen = _s[i]->read_packet(result, sizeof(result)-1);
