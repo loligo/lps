@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
             if (!_s[i]->read_available())
             {
                 ROS_INFO("Waiting for %d",i); 
-                if (_s[i]->wait_for_data(300) < 1)
+                if (_s[i]->wait_for_data(200) < 1)
                 {
                     ROS_INFO("%d no data?\n",i);
                     //stimeouts[i]++;
@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            int n=30;
+            int n=100;
             while (n-->0)
             {
                 result[0]=0xff;
@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
                 if (plen < 0) 
                 {
                     ROS_INFO("plen<0");
-                    continue;
+                    break;
                 }
                 ros::Time t = ros::Time::now();
                 
@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
                 
                 RangePacket rp(p);
                 if (rp.anchorid() == 0xeeee) break;
-                ROS_INFO("%.2x->%.2x %6dmm %.1fdbm",rp.from(),rp.anchorid(),rp.dist(),rp.power());
+                ROS_INFO("%.2x->%.2x %6dmm %.1fdbm (%d)",rp.from(),rp.anchorid(),rp.dist(),rp.power(),n);
                 if (rp.anchorid() > 0xff) continue;
 
                 lps::LPSRange rangemsg;
