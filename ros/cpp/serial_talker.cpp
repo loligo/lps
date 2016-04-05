@@ -23,7 +23,7 @@
 
 static struct Option options[] = 
 {
-    { "device",              OpType(OP_REQ),    "/dev/ttyUSB.lps*",
+    { "device",              OpType(OP_REQ),    "/dev/ttyUSB.tag*",
       "tty interface for lps, generally /dev/ttyUSBx"
     },
     { "device-speed",        OpType(OP_REQ),    "115200",
