@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(GTSAM)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -149,7 +150,10 @@ target_link_libraries(serialtalker
 
 ## Declare a C++ executable
 add_executable(locationtracker 
-  cpp/locationtracker.cpp)
+  cpp/locationtracker.cpp
+  cpp/GtsamFilter.cpp
+  cpp/MobileAnchor.cpp
+)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above

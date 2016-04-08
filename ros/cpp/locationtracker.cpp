@@ -41,6 +41,8 @@ union semun {
 #include <loligo/slam/AnchorPoint.h>
 #include <gtsam/geometry/Point3.h>
 
+#include "MobileAnchor.h"
+
 #define SHMOBJ_PATH         "/shmjeshu"
 
 // System V IPC
@@ -76,65 +78,10 @@ static struct Option options[] =
     { "", 0, "", ""}
 };
 
-class MobileAnchor
-{
-public:
-    MobileAnchor() : _mag_min(1e10,1e10,1e10), _mag_max(-1e10,-1e10,-1e10), _mag_bias(0,0,0)
-    {
-    }
-
-    double x() {return _x.x();}
-    double y() {return _x.y();}
-    double z() {return _x.z();}
-    double theta() {Point3 v=this->m();return atan2(v.z(),v.x());}
-
-    void setLocation(Point3 &p) {_x=p;}
-    void setMagnetometer(Point3 p) 
-    {
-        if (p.x()==0 && p.y()==0 && p.z()==0) return;
-        _m=p;
-        if (_m.x() < _mag_min(0)) _mag_min(0) = _m.x();
-        if (_m.x() > _mag_max(0)) _mag_max(0) = _m.x();
-        if (_m.y() < _mag_min(1)) _mag_min(1) = _m.y();
-        if (_m.x() > _mag_max(1)) _mag_max(1) = _m.y();
-        if (_m.z() < _mag_min(2)) _mag_min(2) = _m.z();
-        if (_m.z() > _mag_max(2)) _mag_max(2) = _m.z();
-        Log::print(LOG_SPAM, "mag min(%f,%f,%f) max(%f,%f,%f)\n", 
-                   _mag_min(0), _mag_min(1), _mag_min(2), 
-                   _mag_max(0), _mag_max(1), _mag_max(2));
-        _mag_bias = (_mag_max + _mag_min)/2;
-        Vector3 average = (_mag_max - _mag_min)/2;
-        for (int i=0;i<3;++i) _mag_scale(i) = average.sum()/3.0/average(i);
-    }
-    
-    Point3 m()
-    {
-        Vector3 v = _m.vector() - _mag_bias;
-        for (int i=0;i<3;++i) v(i) = v(i)*_mag_scale(i);
-        return Point3(v);
-    }
-
-private:
-    Point3 _x;
-    Point3 _m;
-    Vector3 _mag_min;
-    Vector3 _mag_max;
-    Vector3 _mag_bias;
-    Vector3 _mag_scale;
-};
-
-typedef struct {
-    double t; // timestamp
-    float r; // range in meters
-    uint16_t tag_id;
-    uint16_t anchor_id;
-} lps_range_t;
-
-
 // Structures
 vector<deque<lps_range_t> > _anchor_ranges;
 vector<MobileAnchor> _anchors;
-vector<Point3> _tags;
+vector<AnchorPoint> _tags;
 SvgMap _map;
 struct shared_data *_shared_msg;      /* the shared segment, and head of the messages list */
 
@@ -155,8 +102,10 @@ void addMap(SvgMap &map)
         if ((map_a[i].id+1) > (int)_tags.size()) _tags.resize(map_a[i].id+1);
         Log::print(LOG_VERBOSE, "%s:addMap: Tag[0x%.2x]@(%.2f,%.2f,%.2f)\n", 
                    __FILE__, map_a[i].id, map_a[i].p.x(), map_a[i].p.y(), map_a[i].p.z());
-        _tags[map_a[i].id] = Point3(map_a[i].p.x(), map_a[i].p.y(), map_a[i].p.z());
+        _tags[map_a[i].id] = AnchorPoint(map_a[i].p.x(), map_a[i].p.y(), map_a[i].p.z());
     }
+    for (unsigned i=0;i<_anchors.size();i++) _anchors[i].addTags(_tags);
+
 }
 
 void init_posix_shm()
@@ -366,60 +315,11 @@ void updateShm()
 void updateLocations()
 {
     Log::print(LOG_DEBUG, "LPSThread::updateLocations size of _anchors=%d\n", _anchors.size());
+    mi_odometry_t odo = {ros::Time::now().toSec(), 0, 0, 0};
     for (unsigned i=0;i<_anchors.size();i++)
     {
-        Log::print(LOG_DEBUG, "LPSThread::updateLocations[%d] start\n", i);
-        // Use the last two measurements from different tags
-        deque<lps_range_t>::reverse_iterator mi = _anchor_ranges[i].rbegin();
-        if (mi == _anchor_ranges[i].rend()) continue;
-
-        int c1_tagid=mi->tag_id;
-        double r1=mi->r;
-        AnchorPoint c1(_tags[mi->tag_id]);
-        Log::print(LOG_DEBUG, "LPSThread::updateLocations[%d] First range from tag %d p(%.1f,%.1f,%.1f) r%.3f\n", 
-                   i, c1_tagid, c1.x(),c1.y(),c1.z(),r1);
-
-        // Take next measurement that is not from the same tag
-        mi++;
-        while (mi!= _anchor_ranges[i].rend() && mi->tag_id == c1_tagid) mi++;
-        if (mi == _anchor_ranges[i].rend()) continue;
-
-        AnchorPoint c2(_tags[mi->tag_id]);
-        int c2_tagid=mi->tag_id;
-        double r2=mi->r;
-        Log::print(LOG_DEBUG, "LPSThread::updateLocations[%d] Second range from tag %d p(%.1f,%.1f,%.1f) r%.3f\n", 
-                   i, c2_tagid, c2.x(),c2.y(),c2.z(),r2);
-        double tol=0.8;
-        list<Point3> solutions=AnchorPoint::CircleCircleIntersection(c1, r1, c2, r2, 1.70, tol);
-        Log::print(LOG_DEBUG, "LPSThread::updateLocations[%d] %d intersections\n", i, solutions.size());
-
-        // Take next measurement that is not from either of the first tags
-        mi++;
-        while (mi!= _anchor_ranges[i].rend() && (mi->tag_id == c1_tagid || mi->tag_id == c2_tagid)) mi++;
-        if (mi == _anchor_ranges[i].rend()) continue;
-
-        // determine real solution by comparing to third available tag
-        Point3 c3 = _tags[mi->tag_id];
-        double r3 = mi->r;
-        Log::print(LOG_DEBUG, "LPSThread::updateLocations[%d] Third range from tag %d p(%.1f,%.1f,%.1f) r%.3f\n", 
-                   i, mi->tag_id, c3.x(),c3.y(),c3.z(),r3);
-        Point3 best_solution;
-        double best_err = std::nan("");
-        for (list<Point3>::iterator ii=solutions.begin();ii!=solutions.end();ii++)
-        {
-            double err = fabs(c3.distance(*ii)-r3);
-            if (err < tol && (err < best_err || ::isnan(best_err)))
-            {
-                best_solution = *ii;
-                best_err = err;
-            }
-        }
-        if (!::isnan(best_err))
-        {
-            _anchors[i].setLocation(best_solution);
-            Log::print(LOG_VERBOSE, "LPSThread::updateLocations[%d] new location (%.3f,%.3f,%.3f) err=%.3f\n", 
-                       i, best_solution.x(),best_solution.y(),best_solution.z(), best_err);
-        }
+        _anchors[i].addOdometry(odo);
+        _anchors[i].update();
     }
 }
 
@@ -432,7 +332,8 @@ void addLPSRange(lps_range_t &lr)
         _anchor_ranges.resize(lr.anchor_id+1);
         _anchors.resize(lr.anchor_id+1);
     }
-        
+    _anchors[lr.anchor_id].addRange(lr);
+
     _anchor_ranges[lr.anchor_id].push_back(lr);
     while (_anchor_ranges[lr.anchor_id].size() > 20) 
         _anchor_ranges[lr.anchor_id].pop_front();
@@ -478,6 +379,7 @@ void updateFromMysql()
             _map.addPath(r[1],0.0);
         }
     }
+    for (unsigned i=0;i<_anchors.size();i++) _anchors[i].addTags(_tags);
         
 }
 
@@ -496,6 +398,8 @@ void initStructures()
     _tags[2] = Point3(0.00000,1.9500,1.93000);
     _tags[3] = Point3(3.05000,3.8000,2.25000);
     
+    for (unsigned i=0;i<_anchors.size();i++) _anchors[i].addTags(_tags);
+
     updateShm();
     ROS_INFO("initStructures: done");
 }
