@@ -56,7 +56,7 @@ const double location_init_circle_threshold = 0.01;
 const int min_rangefactors_for_init = 3;
 const int min_rangefactors_for_update = 2;
 const int min_odofactors_for_init = 1;
-const int prior_z_lockdown_interval = 100;
+const int prior_z_lockdown_interval = 30;
 const double location_init_inlier_th = 0.075;
 
 // How certain we are about the location of the anchors and their bias
@@ -155,13 +155,13 @@ bool GtsamFilter::initialise(unsigned nranges_to_use, vector<double> Z)
         size_t anchor = _init_rangefactors[i].anchor_id;
         double range = _init_rangefactors[i].r;
         RangeFactor<BedPose, AnchorPoint> rf = RangeFactor<BedPose, AnchorPoint>(0, 1, range, NM::Isotropic::Sigma(1, 1.0), _body_p_anchor0);
-        if (anchor >= _tags.size())
+        if (tag >= _tags.size())
         {
-            Log::print(LOG_ERROR, "GtsamFilter::init - anchor id out of range (%d > %zd)\n", anchor, _tags.size());
+            Log::print(LOG_ERROR, "GtsamFilter::init - tag id out of range (%d > %zd)\n", tag, _tags.size());
             return false;
         }
         
-        Vector error = rf.evaluateError(best_solution, _tags[anchor]);
+        Vector error = rf.evaluateError(best_solution, _tags[tag]);
         double thiserror = error.norm();
         Log::print(LOG_DEBUG, " res: t:%d a:%d range:%.3f error:%.3f\n", tag, anchor, range, thiserror);
 
@@ -209,7 +209,7 @@ support_check_t GtsamFilter::checkSupport(BedPose &pose, double threshold)
             return support;
         }
         
-        Vector error = rf.evaluateError(pose, _tags[anchor]);
+        Vector error = rf.evaluateError(pose, _tags[tag]);
         double thiserror = error.norm();
         Log::print(LOG_VERBOSE, "GtsamFilter::checkSupport[%d] tag=%d anchor=%d error=%f\n", i, tag, anchor, thiserror);
         if(thiserror < threshold) // inlier
@@ -265,7 +265,7 @@ bool GtsamFilter::addMap(SvgMap &map)
     for (unsigned i=0;i<map_a.size();i++)
     {
         if ((map_a[i].id+1) > (int)_tags.size()) _tags.resize(map_a[i].id+1);
-        Log::print(LOG_VERBOSE, "%s:addMap: Anchor[0x%.2x]@(%.2f,%.2f,%.2f)\n", 
+        Log::print(LOG_VERBOSE, "%s:addMap: tags[0x%.2x]@(%.2f,%.2f,%.2f)\n", 
                    __FILE__, map_a[i].id, map_a[i].p.x(), map_a[i].p.y(), map_a[i].p.z());
         _tags[map_a[i].id] = AnchorPoint(map_a[i].p.x(), map_a[i].p.y(), map_a[i].p.z());
     }
@@ -279,7 +279,7 @@ bool GtsamFilter::addMap(SvgMap &map)
         for (std::list<gtsam::Point3>::iterator ii=floor[i].begin();ii!=floor[i].end();ii++)
             addZlevel(ii->z());
     }
-        
+
     return true;
 }
 
@@ -328,14 +328,14 @@ double GtsamFilter::getRangeError(lps_range_t r)
     size_t anchor = r.anchor_id;
     double mrange  = r.t;
     
-    if (anchor >= _tags.size())
+    if (tag >= _tags.size())
     {
-        Log::print(LOG_ERROR, "GtsamFilter::update - anchor id out of range (%d > %zd)\n", anchor, _tags.size());
+        Log::print(LOG_ERROR, "GtsamFilter::update - tag id out of range (%d > %zd)\n", anchor, _tags.size());
         return nan("");
     }
 
     BedPose pp = _last_pose;
-    double erange = pp.range(_tags[anchor]);
+    double erange = pp.range(_tags[tag]);
 
 
     return mrange-erange;
@@ -376,12 +376,12 @@ void GtsamFilter::addNewFactorsToGraph(bool force)
         BedPose odo(oi.s,0.0,oi.s*sin(oi.phi),oi.theta);
 
         _newFactors.push_back(BetweenFactor<BedPose>(_current_step-1, _current_step, odo, NM::Diagonal::Sigmas(lgt_odoSigmas)));
-        Log::print(LOG_VERBOSE, "GtsamFilter:: Odometryfactor@t=%.3f [%.4f %.4f %.4f %.4f]\n", 
+        Log::print(LOG_SPAM, "GtsamFilter::addNewFactorsToGraph Odometryfactor@t=%.3f [%.4f %.4f %.4f %.4f]\n", 
                    t, odo.x(), odo.y(), odo.z(), odo.theta());
         
         // predict pose and add as initial estimate
         BedPose pp = _last_updated_pose.compose(odo);
-        Log::print(LOG_SPAM, "GtsamFilter::update: Odometryfactor@t=%.3f predictedPose=[%.3f %.3f %.3f %.3f]\n", 
+        Log::print(LOG_SPAM, "GtsamFilter::addNewFactorsToGraph: Odometryfactor@t=%.3f predictedPose=[%.3f %.3f %.3f %.3f]\n", 
                    t, pp.x(), pp.y(), pp.z(), pp.theta());
         _last_updated_pose = pp;
         _initial.insert(_current_step, pp);
@@ -395,24 +395,24 @@ void GtsamFilter::addNewFactorsToGraph(bool force)
             size_t anchor = _new_rangefactors.front().anchor_id;
             double range  = _new_rangefactors.front().r;
             
-            if (anchor >= _tags.size())
+            if (tag >= _tags.size())
             {
-                Log::print(LOG_ERROR, "GtsamFilter::update - anchor id out of range (%d > %zd)\n", anchor, _tags.size());
+                Log::print(LOG_ERROR, "GtsamFilter::addNewFactorsToGraph - tag id out of range (%d > %zd)\n", tag, _tags.size());
                 _new_rangefactors.pop_front();
                 continue;
             }
 
-            Log::print(LOG_SPAM, "GtsamFilter::update: Rangefactor@t=%.3f tag %.2x to anchor %.2x %.3fm\n", 
+            Log::print(LOG_SPAM, "GtsamFilter::addNewFactorsToGraph: Rangefactor@t=%.3f tag %.2x to anchor %.2x %.3fm\n", 
                        t, tag, anchor, range);
             
-            _newFactors.push_back(RangeFactor<BedPose, AnchorPoint>(_current_step, symbol('L', anchor), range, rangeNoise, _body_p_anchor0));
+            _newFactors.push_back(RangeFactor<BedPose, AnchorPoint>(_current_step, symbol('L', tag), range, rangeNoise, _body_p_anchor0));
             
             // Add initial location and uncertainty of the anchors (this is done as the robot first sees them)
-            if (!_initial.exists(symbol('L', anchor)) && !_tags_added_to_graph[anchor]) 
+            if (!_initial.exists(symbol('L', tag)) && !_tags_added_to_graph[tag]) 
             {
-                _newFactors.push_back(PriorFactor<AnchorPoint>(symbol('L', anchor), _tags[anchor], tagsPriorNoise));
-                _initial.insert(symbol('L', anchor), _tags[anchor]);
-                _tags_added_to_graph[anchor]=true;
+                _newFactors.push_back(PriorFactor<AnchorPoint>(symbol('L', tag), _tags[tag], tagsPriorNoise));
+                _initial.insert(symbol('L', tag), _tags[tag]);
+                _tags_added_to_graph[tag]=true;
             }
             _new_rangefactors_since_update++;
             _new_rangefactors.pop_front();
@@ -422,7 +422,7 @@ void GtsamFilter::addNewFactorsToGraph(bool force)
         if (_current_step%prior_z_lockdown_interval == 0)
         {
             // Find most likely z from map
-            float z = 0.0; 
+            float z = 1.70; 
             bool b = _map.getZofPoint(_last_updated_pose.x(), _last_updated_pose.y(), z);
 
             // Add as a prior but only allow it to impact Z
@@ -431,6 +431,7 @@ void GtsamFilter::addNewFactorsToGraph(bool force)
                 Vector priorSigmas = Vector4(500,500,0.05,500);
                 BedPose p(_last_updated_pose.x(), _last_updated_pose.y(), z ,_last_updated_pose.theta());
                 _newFactors.push_back(PriorFactor<BedPose>(_current_step, p, NM::Diagonal::Sigmas(priorSigmas)));
+                Log::print(LOG_DEBUG, "GtsamFilter::addNewFactorsToGraph: Setting z prior to %.2f\n", z);
             }
 
         }
@@ -552,8 +553,9 @@ bool GtsamFilter::update(bool force)
                    _current_error
             ); 
         BedPose pp = _last_updated_pose;
-        Log::print(LOG_DEBUG, "GtsamFilter::update(): updated pose=[%.3f %.3f %.3f %.3f]\n", 
-                   pp.x(), pp.y(), pp.z(), pp.theta());
+        Log::print(LOG_DEBUG, "GtsamFilter::update(): updated pose=[%.3f %.3f %.3f %.3f] covariance=[%.3f %.3f %.3f %.3f]\n", 
+                   pp.x(), pp.y(), pp.z(), pp.theta(), 
+                   _last_updated_covariance(0,0),_last_updated_covariance(1,1),_last_updated_covariance(2,2),_last_updated_covariance(3,3));
 
         // Post update needed
         _post_update_needed = true;

@@ -12,6 +12,7 @@ class MobileAnchor
 public:
     MobileAnchor() : _x(0,0,0,0), _mag_min(1e10,1e10,1e10), _mag_max(-1e10,-1e10,-1e10), _mag_bias(0,0,0)
     {
+        _location.addZlevel(1.7);
     }
 
     double x() {return _x.x();}

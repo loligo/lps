@@ -1,6 +1,7 @@
 <launch>
   <group>
     <node pkg="lps" type="serialtalker" name="serialtalker" respawn="true" respawn_delay="5"></node>
-    <node pkg="lps" type="locationtracker" name="locationtracker" launch-prefix="xterm -e gdb --args" respawn="true" respawn_delay="5" args="--log-level=debug"></node>
+    <node pkg="lps" type="locationtracker" name="locationtracker" launch-prefix="xterm -e gdb --args" respawn="true" respawn_delay="5" 
+    args="--log-level=spam --map=/home/niklas/git/loligo/movingdreams/rpi/maps/current_quinzequinze.svg"></node>
   </group>
 </launch>

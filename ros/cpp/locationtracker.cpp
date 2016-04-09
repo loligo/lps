@@ -105,7 +105,6 @@ void addMap(SvgMap &map)
         _tags[map_a[i].id] = AnchorPoint(map_a[i].p.x(), map_a[i].p.y(), map_a[i].p.z());
     }
     for (unsigned i=0;i<_anchors.size();i++) _anchors[i].addTags(_tags);
-
 }
 
 void init_posix_shm()
@@ -376,7 +375,7 @@ void updateFromMysql()
         {
             ROS_INFO("updateFromMysql: maparea='%s'\n", r[1]);
             _map.clearFloorspace();
-            _map.addPath(r[1],0.0);
+            _map.addPath(r[1],1.70);
         }
     }
     for (unsigned i=0;i<_anchors.size();i++) _anchors[i].addTags(_tags);
