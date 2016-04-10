@@ -120,7 +120,6 @@ int main(int argc, char *argv[])
     uint32_t count=0;
     while (ros::ok() && _s.size()>0)
     {
-        Log::print(LOG_INFO, "Loop start\n");
         bool didsomething = false;
         for (unsigned i=0;i<_s.size();i++)
         {
@@ -130,7 +129,7 @@ int main(int argc, char *argv[])
             _s[i]->clearBuffers();
 
             // Trigger transmission
-            ROS_INFO("Trigger %d",i); 
+            ROS_DEBUG("Trigger %d",i); 
             uint8_t d=0;
             int ret = _s[i]->write_bytes(&d,1);
             if (ret < 0 || _s[i]->read_eof()) 
@@ -144,10 +143,10 @@ int main(int argc, char *argv[])
 
             if (!_s[i]->read_available())
             {
-                ROS_INFO("Waiting for %d",i); 
+                ROS_DEBUG("Waiting for %d",i); 
                 if (_s[i]->wait_for_data(200) < 1)
                 {
-                    ROS_INFO("%d no data?\n",i);
+                    ROS_DEBUG("%d no data?",i);
                     if (++stimeouts[i]>10)
                     {
                         ROS_ERROR("Reopened '%s' - no data for 10 cycles", _s[i]->device().c_str());
@@ -172,7 +171,7 @@ int main(int argc, char *argv[])
                 }
                 if (plen < 0) 
                 {
-                    ROS_INFO("plen<0");
+                    ROS_ERROR("plen<0");
                     break;
                 }
                 ros::Time t = ros::Time::now();
@@ -184,7 +183,7 @@ int main(int argc, char *argv[])
                 
                 RangePacket rp(p);
                 if (rp.anchorid() == 0xeeee) break;
-                ROS_INFO("%.2x->%.2x %6dmm %.1fdbm (%d)",rp.from(),rp.anchorid(),rp.dist(),rp.power(),n);
+                ROS_DEBUG("%.2x->%.2x %6dmm %.1fdbm (%d)",rp.from(),rp.anchorid(),rp.dist(),rp.power(),n);
                 if (rp.anchorid() > 0xff) continue;
 
                 lps::LPSRange rangemsg;

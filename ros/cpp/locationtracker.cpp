@@ -173,7 +173,7 @@ void init_systemV_ipc()
     if (_semaphore1_id == -1)
     {
         perror("semget");
-        ROS_ERROR("Could not create semaphore\n");
+        ROS_ERROR("Could not create semaphore");
         exit(EXIT_FAILURE);
     }
     ROS_INFO("semaphore: %d\n", _semaphore1_id);
@@ -183,7 +183,7 @@ void init_systemV_ipc()
     if (semctl(_semaphore1_id, 0, SETVAL, sem_union_init) == -1)
     {
         perror("semaphore failed");
-        ROS_ERROR("Creating semaphore failed to initialize\n");
+        ROS_ERROR("Creating semaphore failed to initialize");
         exit(EXIT_FAILURE);
     }
         
@@ -210,7 +210,7 @@ void init_systemV_ipc()
     
 void deinit()
 {
-    ROS_INFO("Destructor Start\n");
+    ROS_INFO("Destructor Start");
     sem_wait(sem_id);
     if (shm_unlink(SHMOBJ_PATH) != 0) {
         perror("In shm_unlink()");
@@ -247,7 +247,7 @@ void deinit()
     union semun sem_union_delete;
     if (semctl(_semaphore1_id, 0, IPC_RMID, sem_union_delete) == -1)
         fprintf(stderr, "Failed to delete semaphore\n");
-    Log::print(LOG_INFO, "LPSThread::Destructor End\n");
+    ROS_INFO("LPSThread::Destructor End");
 }
 
 lps_range_t getTagRange(int anchorid, int tagid)
@@ -313,7 +313,6 @@ void updateShm()
     
 void updateLocations()
 {
-    Log::print(LOG_DEBUG, "LPSThread::updateLocations size of _anchors=%d\n", _anchors.size());
     mi_odometry_t odo = {ros::Time::now().toSec(), 0, 0, 0};
     for (unsigned i=0;i<_anchors.size();i++)
     {
@@ -326,17 +325,19 @@ void updateLocations()
     
 void addLPSRange(lps_range_t &lr)
 {
+    mi_odometry_t odo = {ros::Time::now().toSec(), 0, 0, 0};
     if ((int)_anchor_ranges.size() < lr.anchor_id+1)
     {
         _anchor_ranges.resize(lr.anchor_id+1);
         _anchors.resize(lr.anchor_id+1);
     }
     _anchors[lr.anchor_id].addRange(lr);
+    _anchors[lr.anchor_id].addOdometry(odo);
+    _anchors[lr.anchor_id].update();
 
     _anchor_ranges[lr.anchor_id].push_back(lr);
     while (_anchor_ranges[lr.anchor_id].size() > 20) 
         _anchor_ranges[lr.anchor_id].pop_front();
-    Log::print(LOG_INFO, "anchor[%d]: size=%d\n",lr.anchor_id,_anchor_ranges[lr.anchor_id].size());
 }
 
 void updateFromMysql()
@@ -346,7 +347,7 @@ void updateFromMysql()
         
     if (!_mw->query(sql)) 
     {
-        ROS_ERROR("updateFromMysql: failed sql\n");
+        ROS_ERROR("updateFromMysql: failed sql");
         return;
     }
         
@@ -355,7 +356,7 @@ void updateFromMysql()
     for (int i=0;i<nrows;++i)
     {
         char** r = _mw->fetch_row();
-        Log::print(LOG_VERBOSE, "updateFromMysql: %s %s\n", r[0], r[1]);
+        ROS_DEBUG("%s %s\n", r[0], r[1]);
         if (_mw->num_fields() == 0) continue;
         if (strstr(r[0], "Tag") != 0)
         {
@@ -366,14 +367,14 @@ void updateFromMysql()
                 d[j] = strtof(v[j].c_str(), NULL);
 
             unsigned tag_id = strtol(r[0]+3, NULL, 0);
-            ROS_INFO("updateFromMysql: tag_id=%d, (%f,%f,%f)\n", tag_id, d[0], d[1], d[2]);
+            ROS_INFO("updateFromMysql: tag_id=%d, (%f,%f,%f)", tag_id, d[0], d[1], d[2]);
             if (tag_id<_tags.size())
                 _tags[tag_id] = Point3(d);
         }
 
         if (strstr(r[0], "MapArea") != 0)
         {
-            ROS_INFO("updateFromMysql: maparea='%s'\n", r[1]);
+            ROS_INFO("updateFromMysql: maparea='%s'", r[1]);
             _map.clearFloorspace();
             _map.addPath(r[1],1.70);
         }
@@ -414,7 +415,7 @@ void lpsrangeCallback(const lps::LPSRange::ConstPtr& msg)
     lr.anchor_id = msg->anchor_id;
     addLPSRange(lr);
 
-    updateLocations();
+    //updateLocations();
 }
 
 
@@ -430,7 +431,7 @@ int main(int argc, char *argv[])
     
     ros::Subscriber sub = n.subscribe("lpsranges", 100, lpsrangeCallback);
 
-    ROS_INFO("MysqlThread: Connecting to database\n");
+    ROS_INFO("MysqlThread: Connecting to database");
     _mw = new MysqlWrap("localhost", "md_usr", "peoplesleepingbetweensheets", "mddb");
     _mw->connect();
 
