@@ -53,10 +53,11 @@ using namespace gtsam;
 
 // Constants
 const double location_init_circle_threshold = 0.01;
-const int min_rangefactors_for_init = 3;
+const int min_rangefactors_for_init = 4;
 const int min_rangefactors_for_update = 2;
 const int min_odofactors_for_init = 1;
 const int prior_z_lockdown_interval = 30;
+const int max_ranges_added_before_restart = 800;
 const double location_init_inlier_th = 0.075;
 
 // How certain we are about the location of the anchors and their bias
@@ -314,6 +315,9 @@ bool GtsamFilter::addRange(lps_range_t r)
     _init_rangefactors.push_back(r);
     _total_rangefactors_added++;
 
+    if (_total_rangefactors_added > max_ranges_added_before_restart) 
+        _do_restart = true;
+
     if (_initialized)
         _new_rangefactors.push_back(r);
 
@@ -376,7 +380,7 @@ void GtsamFilter::addNewFactorsToGraph(bool force)
         BedPose odo(oi.s,0.0,oi.s*sin(oi.phi),oi.theta);
 
         _newFactors.push_back(BetweenFactor<BedPose>(_current_step-1, _current_step, odo, NM::Diagonal::Sigmas(lgt_odoSigmas)));
-        Log::print(LOG_SPAM, "GtsamFilter::addNewFactorsToGraph Odometryfactor@t=%.3f [%.4f %.4f %.4f %.4f]\n", 
+        Log::print(LOG_SPAM, "GtsamFilter::addNewFactorsToGraph: Odometryfactor@t=%.3f [%.4f %.4f %.4f %.4f]\n", 
                    t, odo.x(), odo.y(), odo.z(), odo.theta());
         
         // predict pose and add as initial estimate
@@ -397,7 +401,7 @@ void GtsamFilter::addNewFactorsToGraph(bool force)
             
             if (tag >= _tags.size())
             {
-                Log::print(LOG_ERROR, "GtsamFilter::addNewFactorsToGraph - tag id out of range (%d > %zd)\n", tag, _tags.size());
+                Log::print(LOG_ERROR, "GtsamFilter::addNewFactorsToGraph: - tag id out of range (%d > %zd)\n", tag, _tags.size());
                 _new_rangefactors.pop_front();
                 continue;
             }
@@ -456,6 +460,7 @@ bool GtsamFilter::update(bool force)
         _result = Values();
         _current_step = 0;
         _step_time.resize(100,0);
+        _total_rangefactors_added = _init_rangefactors.size() + 1;
 
         setSuggestedInit(_last_pose, Vector4(1,1,0.05,0.1)); 
         _initialized = false; // to force init bundling
