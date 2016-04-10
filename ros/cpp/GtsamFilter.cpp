@@ -203,9 +203,9 @@ support_check_t GtsamFilter::checkSupport(BedPose &pose, double threshold)
         double range = _init_rangefactors[i].r;
         RangeFactor<BedPose, AnchorPoint> rf;
         rf = RangeFactor<BedPose, AnchorPoint>(0, 1, range, NM::Isotropic::Sigma(1, 1.0), _body_p_anchor0);
-        if (anchor >= _tags.size())
+        if (tag >= _tags.size())
         {
-            Log::print(LOG_ERROR, "GtsamFilter::checkSupport - anchor id out of range (%d > %zd)\n", anchor, _tags.size());
+            Log::print(LOG_ERROR, "GtsamFilter::checkSupport - tag id out of range (%d > %zd)\n", tag, _tags.size());
             support.inliers=0;
             return support;
         }
