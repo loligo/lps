@@ -57,7 +57,7 @@ const int min_rangefactors_for_init = 4;
 const int min_rangefactors_for_update = 2;
 const int min_odofactors_for_init = 1;
 const int prior_z_lockdown_interval = 30;
-const int max_ranges_added_before_restart = 800;
+const int max_ranges_added_before_restart = 400;
 const double location_init_inlier_th = 0.075;
 
 // How certain we are about the location of the anchors and their bias

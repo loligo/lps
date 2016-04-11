@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     ros::init(argc, argv, "lps_talker");
 
     ros::NodeHandle n;
-    ros::Publisher lps_pub = n.advertise<lps::LPSRange>("lpsranges", 100);
+    ros::Publisher lps_pub = n.advertise<lps::LPSRange>("lpsranges", 20);
     ros::Rate loop_rate(10);
     
     // Open serial ports

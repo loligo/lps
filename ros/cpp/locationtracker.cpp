@@ -429,7 +429,7 @@ int main(int argc, char *argv[])
     ros::init(argc, argv, "locationtracker");
     ros::NodeHandle n;
     
-    ros::Subscriber sub = n.subscribe("lpsranges", 100, lpsrangeCallback);
+    ros::Subscriber sub = n.subscribe("lpsranges", 20, lpsrangeCallback);
 
     ROS_INFO("MysqlThread: Connecting to database");
     _mw = new MysqlWrap("localhost", "md_usr", "peoplesleepingbetweensheets", "mddb");
@@ -448,7 +448,7 @@ int main(int argc, char *argv[])
     }
 
     double updated_map_and_tags = 0;
-    ros::Rate loop_rate(25);
+    ros::Rate loop_rate(15);
     while (ros::ok())
     {
         if (ros::Time::now().toSec() - updated_map_and_tags > 30.0)
