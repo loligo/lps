@@ -458,6 +458,7 @@ int main(int argc, char *argv[])
     {
         if (ros::Time::now().toSec() - updated_markers > 1.0)
         {
+            updated_markers = ros::Time::now().toSec();
             visualization_msgs::Marker marker;
             marker.header.frame_id = "/my_frame";
             marker.header.stamp = ros::Time::now();
