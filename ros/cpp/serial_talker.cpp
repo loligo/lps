@@ -49,12 +49,10 @@ std::vector<Serial*> _s;
 
 bool addSerialDevice(const string device, const string speed)
 {
-    if (!Serial::checkDeviceFile(device.c_str())) return false;
     Serial *s = new Serial('\0');
-    if (!s->openDevice(device.c_str(), speed.c_str())) 
+    if (!s->openDevice(device, speed)) 
     {
-        delete s;
-        return false;
+        ROS_ERROR("Can't add device: %s, will try later", device.c_str());
     }
     _s.push_back(s);
     return true;
