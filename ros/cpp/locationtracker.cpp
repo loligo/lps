@@ -502,7 +502,7 @@ int main(int argc, char *argv[])
     ros::NodeHandle n;
     
     ros::Subscriber sub = n.subscribe("lpsranges", 20, lpsrangeCallback);
-    _marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 1);
+    _marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 0);
 
     uint32_t shape = visualization_msgs::Marker::CUBE;
 
