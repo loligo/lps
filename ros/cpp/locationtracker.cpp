@@ -307,7 +307,7 @@ void publishMarkers()
 
     for (unsigned i=0;i<_anchor_ranges.size();i++)
     {
-        if (_anchor[i].x()==0.0 && _anchor[i].y()==0.0) continue;
+        if (_anchors[i].x()==0.0 && _anchors[i].y()==0.0) continue;
         marker.id = i;
         
         marker.pose.position.x = _anchors[i].x();
