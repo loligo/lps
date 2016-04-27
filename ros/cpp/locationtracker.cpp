@@ -268,7 +268,7 @@ void publishMarkers()
 {
     visualization_msgs::Marker marker;
     marker.header.frame_id = "/my_frame";
-    marker.header.stamp = ros::Time::now();
+    marker.header.stamp = ros::Time();
     marker.ns = "tags";
     marker.id = 0;
     marker.type = visualization_msgs::Marker::CUBE;
