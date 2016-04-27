@@ -527,7 +527,7 @@ int main(int argc, char *argv[])
     ros::Rate loop_rate(15);
     while (ros::ok())
     {
-        if (ros::Time::now().toSec() - updated_markers > 1.0)
+        if (ros::Time::now().toSec() - updated_markers > 0.25)
         {
             updated_markers = ros::Time::now().toSec();
             publishMarkers();
