@@ -293,7 +293,7 @@ void publishMarkers()
         // Set the color -- be sure to set alpha to something non-zero!
         marker.color.r = 0.0f;
         marker.color.g = 1.0f;
-        marker.color.b = 0.0f;
+        marker.color.b = 0.0f + rand();
         marker.color.a = 1.0;
         
         marker.lifetime = ros::Duration();
@@ -307,6 +307,7 @@ void publishMarkers()
 
     for (unsigned i=0;i<_anchor_ranges.size();i++)
     {
+        if (_anchor[i].x()==0.0 && _anchor[i].y()==0.0) continue;
         marker.id = i;
         
         marker.pose.position.x = _anchors[i].x();
@@ -324,7 +325,7 @@ void publishMarkers()
         
         // Set the color -- be sure to set alpha to something non-zero!
         marker.color.r = 1.0f;
-        marker.color.g = 0.0f;
+        marker.color.g = 0.0f + 0.1*i;
         marker.color.b = 0.0f;
         marker.color.a = 1.0;
         
