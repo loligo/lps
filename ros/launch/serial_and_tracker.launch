@@ -1,6 +1,12 @@
 <launch>
+  <arg name="record_lpsranges" default="true" />
+  
   <group>
     <node pkg="lps" type="serialtalker" name="serialtalker" respawn="true" respawn_delay="5" output="screen"></node>
     <node pkg="lps" type="locationtracker" name="locationtracker" respawn="true" respawn_delay="5"></node>
   </group>
+  
+  <node pkg="rosbag" type="rosbag" name="rosbag_record_lpsranges"
+        args="record -j -o /var/log/lpslog/ranges /lpsranges"
+        if="$(arg record_lpsranges)" />
 </launch>
