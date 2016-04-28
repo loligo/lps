@@ -358,7 +358,7 @@ void updateShm()
             json += StringUtils::stringf("{\"t\":\"%.3f\",\"r\":\"%.3f\"}", td, lr.r);
         }
         json += StringUtils::stringf("],");
-        json += StringUtils::stringf("\"active\": \"%s\"", (active)?"true":"false");
+        json += StringUtils::stringf("\"active\": \"%s\",", (active)?"true":"false");
         json += StringUtils::stringf("\"location\": ");
         json += StringUtils::stringf("[\"%.3f\",\"%.3f\",\"%.3f\",\"%.3f\"]", _anchors[i].x(), _anchors[i].y(), _anchors[i].z(), _anchors[i].theta());
         json += StringUtils::stringf("}", i);
