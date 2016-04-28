@@ -355,7 +355,7 @@ void updateShm()
             double td = ros::Time::now().toSec()-lr.t;
             td = (abs(td >10))? 10.0 : td;
             if (abs(td<2)) active = true; 
-            json += StringUtils::stringf("{\"t\":\"%.3f\",\"r\":\"%.3f\"}", a, td, lr.r);
+            json += StringUtils::stringf("{\"t\":\"%.3f\",\"r\":\"%.3f\"}", td, lr.r);
         }
         json += StringUtils::stringf("],");
         json += StringUtils::stringf("\"active\": \"%s\"", (active)?"true":"false");
