@@ -347,15 +347,18 @@ void updateShm()
         json += StringUtils::stringf("\"Anchor%.2d\":{", i);
         json += StringUtils::stringf("\"ranges\":[");
         // Only exporting info for max 4 tags
+        bool active = false;
         for (unsigned j=0;j<4;j++)
         {
             lps_range_t lr = getTagRange(i,j);
             if (j!=0) json += ",";
             double td = ros::Time::now().toSec()-lr.t;
             td = (abs(td >10))? 10.0 : td;
-            json += StringUtils::stringf("{\"t\":\"%.3f\",\"r\":\"%.3f\"}", td, lr.r);
+            if (abs(td<2)) active = true; 
+            json += StringUtils::stringf("{\"t\":\"%.3f\",\"r\":\"%.3f\"}", a, td, lr.r);
         }
         json += StringUtils::stringf("],");
+        json += StringUtils::stringf("\"active\": \"%s\"", (a)?"true":"false");
         json += StringUtils::stringf("\"location\": ");
         json += StringUtils::stringf("[\"%.3f\",\"%.3f\",\"%.3f\",\"%.3f\"]", _anchors[i].x(), _anchors[i].y(), _anchors[i].z(), _anchors[i].theta());
         json += StringUtils::stringf("}", i);
