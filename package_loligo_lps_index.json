@@ -6,20 +6,20 @@
             "websiteURL": "",
             "email": "info@loligo.se",
             "help": {
-                "online": "http://loligo.se"
+                "online": "http://www.loligo.se"
             },
             "platforms": [
                 {
                     "category": "LPS",
                     "name": "lps",
                     "architecture": "avr",
-                    "version": "0.0.1",
+                    "version": "0.0.2",
                     "help": {
-                        "online": "http://loligo.se"
+                        "online": "http://www.loligo.se"
                     },
-                    "url": "https://github.com/loligo/lps/archive/0.0.1.zip",
-                    "archiveFileName": "0.0.1.zip",
-                    "checksum": "SHA-256:ebf581cf94b4a0f1e07ba06642d6ad2b01643fb8967411f1700ebe44d10ef1da",
+                    "url": "https://github.com/loligo/lps/archive/v0.0.2.zip",
+                    "archiveFileName": "v0.0.2.zip",
+                    "checksum": "SHA-256:25d2d9586b5040e799b3b78715da8ba38ae0cd3caa793e302121e211d8ee2310",
                     "boards" : [
                         { "name": "LPS v1.1 5V/16MHz" },
                         { "name": "LPS v1.1 5V/20MHz" },
