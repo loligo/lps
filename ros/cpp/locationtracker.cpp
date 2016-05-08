@@ -15,6 +15,7 @@
 
 // ROS
 #include "ros/ros.h"
+#include <visualization_msgs/Marker.h>
 #include <lps/LPSRange.h>
 
 // System V IPC
@@ -91,6 +92,8 @@ struct shared_data *_shared_memory1;
 void* _shared_memory1_pointer;
 int _shared_memory1_id;
 
+// Viz
+ros::Publisher _marker_pub;
     
 void addMap(SvgMap &map)
 {
@@ -261,7 +264,76 @@ lps_range_t getTagRange(int anchorid, int tagid)
     return *mi;
 }
 
+void publishMarkers()
+{
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "/my_frame";
+    marker.header.stamp = ros::Time();
+    marker.ns = "tags";
+    marker.id = 0;
+    marker.type = visualization_msgs::Marker::CUBE;
+    marker.action = visualization_msgs::Marker::ADD;
+    for (unsigned i=0;i<_tags.size();i++)
+    {
+        marker.id = i;
+        
+        marker.pose.position.x = _tags[i].x();
+        marker.pose.position.y = _tags[i].y();
+        marker.pose.position.z = _tags[i].z();
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;
+        
+        // Set the scale of the marker -- 1x1x1 here means 1m on a side
+        marker.scale.x = 0.25;
+        marker.scale.y = 0.25;
+        marker.scale.z = 0.25;
+        
+        // Set the color -- be sure to set alpha to something non-zero!
+        marker.color.r = 0.0f;
+        marker.color.g = 1.0f;
+        marker.color.b = 0.0f + rand();
+        marker.color.a = 1.0;
+        
+        marker.lifetime = ros::Duration();
+        _marker_pub.publish(marker);
+    }
 
+    marker.ns = "anchors";
+    marker.id = 0;
+    marker.type = visualization_msgs::Marker::SPHERE;
+    marker.action = visualization_msgs::Marker::ADD;
+
+    for (unsigned i=0;i<_anchor_ranges.size();i++)
+    {
+        if (_anchors[i].x()==0.0 && _anchors[i].y()==0.0) continue;
+        marker.id = i;
+        
+        marker.pose.position.x = _anchors[i].x();
+        marker.pose.position.y = _anchors[i].y();
+        marker.pose.position.z = _anchors[i].z();
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;
+        
+        // Set the scale of the marker -- 1x1x1 here means 1m on a side
+        marker.scale.x = 0.5;
+        marker.scale.y = 0.5;
+        marker.scale.z = 0.5;
+        
+        // Set the color -- be sure to set alpha to something non-zero!
+        marker.color.r = 1.0f;
+        marker.color.g = 0.0f + 0.1*i;
+        marker.color.b = 0.0f;
+        marker.color.a = 1.0;
+        
+        marker.lifetime = ros::Duration();
+        _marker_pub.publish(marker);
+    }
+    
+}
 
 void updateShm()
 {
@@ -275,15 +347,18 @@ void updateShm()
         json += StringUtils::stringf("\"Anchor%.2d\":{", i);
         json += StringUtils::stringf("\"ranges\":[");
         // Only exporting info for max 4 tags
+        bool active = false;
         for (unsigned j=0;j<4;j++)
         {
             lps_range_t lr = getTagRange(i,j);
             if (j!=0) json += ",";
             double td = ros::Time::now().toSec()-lr.t;
             td = (abs(td >10))? 10.0 : td;
+            if (abs(td<2)) active = true; 
             json += StringUtils::stringf("{\"t\":\"%.3f\",\"r\":\"%.3f\"}", td, lr.r);
         }
         json += StringUtils::stringf("],");
+        json += StringUtils::stringf("\"active\": \"%s\",", (active)?"true":"false");
         json += StringUtils::stringf("\"location\": ");
         json += StringUtils::stringf("[\"%.3f\",\"%.3f\",\"%.3f\",\"%.3f\"]", _anchors[i].x(), _anchors[i].y(), _anchors[i].z(), _anchors[i].theta());
         json += StringUtils::stringf("}", i);
@@ -401,6 +476,7 @@ void initStructures()
     for (unsigned i=0;i<_anchors.size();i++) _anchors[i].addTags(_tags);
 
     updateShm();
+
     ROS_INFO("initStructures: done");
 }
 
@@ -430,6 +506,9 @@ int main(int argc, char *argv[])
     ros::NodeHandle n;
     
     ros::Subscriber sub = n.subscribe("lpsranges", 20, lpsrangeCallback);
+    _marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 0);
+
+    uint32_t shape = visualization_msgs::Marker::CUBE;
 
     ROS_INFO("MysqlThread: Connecting to database");
     _mw = new MysqlWrap("localhost", "md_usr", "peoplesleepingbetweensheets", "mddb");
@@ -448,9 +527,17 @@ int main(int argc, char *argv[])
     }
 
     double updated_map_and_tags = 0;
+    double updated_markers = 0;
     ros::Rate loop_rate(15);
     while (ros::ok())
     {
+        if (ros::Time::now().toSec() - updated_markers > 0.25)
+        {
+            updated_markers = ros::Time::now().toSec();
+            publishMarkers();
+            ROS_INFO("Published marker");
+        }
+
         if (ros::Time::now().toSec() - updated_map_and_tags > 30.0)
         {
             updated_map_and_tags = ros::Time::now().toSec();
