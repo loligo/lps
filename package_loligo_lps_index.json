@@ -62,7 +62,7 @@
                     },
                     "url": "https://github.com/loligo/lps/archive/v0.0.3.zip",
                     "archiveFileName": "v0.0.3.zip",
-                    "checksum": "SHA-256:25d2d9586b5040e799b3b78715da8ba38ae0cd3caa793e302121e211d8ee2310",
+                    "checksum": "SHA-256:0a0f0ba56ac60226e95e49fcd5a5889e8c9bf5b2e04638db5e77a8b193ddf98f",
                     "boards" : [
                         { "name": "LPS v1.1 5V/16MHz" },
                         { "name": "LPS v1.1 5V/20MHz" },
