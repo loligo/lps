@@ -99,13 +99,13 @@
                     "category": "LPS",
                     "name": "lps",
                     "architecture": "avr",
-                    "version": "0.0.5",
+                    "version": "0.0.6",
                     "help": {
                         "online": "http://www.loligo.se"
                     },
-                    "url": "https://github.com/loligo/lps/archive/v0.0.5.zip",
-                    "archiveFileName": "v0.0.5.zip",
-                    "checksum": "SHA-256:b35bbaa63b9bf46f49ad523de90694f3369bf9c2cc3f064f9239209736ee85b2",
+                    "url": "https://github.com/loligo/lps/archive/v0.0.6.zip",
+                    "archiveFileName": "v0.0.6.zip",
+                    "checksum": "SHA-256:4ec1ae3a460ea380ce0ba2087c9a82d187f6d01e8299f083ab92680e0ef6522b",
                     "boards" : [
                         { "name": "LPS v1.1 5V/16MHz" },
                         { "name": "LPS v1.1 5V/20MHz" },
