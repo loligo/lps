@@ -23,3 +23,12 @@ SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{seria
 ...
 SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="AK04SUSI", SYMLINK+="ttyUSB.tag3"
 ```
+
+Uploading hex files directly using the Chrome app AVRChick
+----------------------------------------------------------
+In the chrome webstore there is an application called AVRChick. This can upload the hexfiles
+provided to your LPS board. You need to connect your LPS board to the computer before starting
+AVRChick as it does not refresh it's list of devices. This is a link to the Chrome webstore for
+
+AVRChick:
+https://chrome.google.com/webstore/detail/avrchick/kpbgbcocfgjbmnpplcjlcammjdkgogba?hl=en
