@@ -10,7 +10,7 @@ lpsv11_16.bootloader.tool=arduino:avrdude
 lpsv11_16.bootloader.low_fuses=0xff
 lpsv11_16.bootloader.high_fuses=0xDE
 lpsv11_16.bootloader.extended_fuses=0x05
-lpsv11_16.bootloader.file=optiboot/optiboot-lpsv11_16.hex
+lpsv11_16.bootloader.file=optiboot-lpsv11_16.hex
 lpsv11_16.bootloader.unlock_bits=0x3F
 lpsv11_16.bootloader.lock_bits=0x2F
 
@@ -32,7 +32,7 @@ lpsv11_20.bootloader.tool=arduino:avrdude
 lpsv11_20.bootloader.low_fuses=0xff
 lpsv11_20.bootloader.high_fuses=0xDE
 lpsv11_20.bootloader.extended_fuses=0x05
-lpsv11_20.bootloader.file=optiboot/optiboot-lpsv11_20.hex
+lpsv11_20.bootloader.file=optiboot-lpsv11_20.hex
 lpsv11_20.bootloader.unlock_bits=0x3F
 lpsv11_20.bootloader.lock_bits=0x2F
 
@@ -54,7 +54,7 @@ lpsminiv10_8.bootloader.tool=arduino:avrdude
 lpsminiv10_8.bootloader.low_fuses=0xff
 lpsminiv10_8.bootloader.high_fuses=0xde
 lpsminiv10_8.bootloader.extended_fuses=0x05
-lpsminiv10_8.bootloader.file=optiboot/optiboot-lpsminiv10_8.hex
+lpsminiv10_8.bootloader.file=optiboot-lpsminiv10_8.hex
 lpsminiv10_8.bootloader.unlock_bits=0x3F
 lpsminiv10_8.bootloader.lock_bits=0x2F
 
@@ -76,7 +76,7 @@ lpsminiv10_12.bootloader.tool=arduino:avrdude
 lpsminiv10_12.bootloader.low_fuses=0xff
 lpsminiv10_12.bootloader.high_fuses=0xde
 lpsminiv10_12.bootloader.extended_fuses=0x05
-lpsminiv10_12.bootloader.file=optiboot/optiboot-lpsminiv10_12.hex
+lpsminiv10_12.bootloader.file=optiboot-lpsminiv10_12.hex
 lpsminiv10_12.bootloader.unlock_bits=0x3F
 lpsminiv10_12.bootloader.lock_bits=0x2F
 lpsminiv10_12.build.mcu=atmega328p
