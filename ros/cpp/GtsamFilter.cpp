@@ -55,10 +55,11 @@ using namespace gtsam;
 const double location_init_circle_threshold = 0.01;
 const int min_rangefactors_for_init = 4;
 const int min_rangefactors_for_update = 2;
-const int min_odofactors_for_init = 1;
+const int min_odofactors_for_init = 5; // Not strictly needed for init, just how many are kept in memory in case
 const int prior_z_lockdown_interval = 50;
 const int max_ranges_added_before_restart = 400;
 const double location_init_inlier_th = 0.075;
+const double update_age_filter_reset_th = 10; // seconds
 
 // How certain we are about the location of the anchors and their bias
 const Vector lgt_tagsPriorSigmas = Vector4(0.01,0.01,0.05,0.5);  
@@ -303,9 +304,20 @@ void GtsamFilter::addZlevel(double z)
 
 bool GtsamFilter::addOdometry(const mi_odometry_t &odometry)
 {
+    // Check the age from last odometry added, if it's been too long
+    // force a restart of the filter
+    if (_init_odofactors.size())
+        if (fabs(odometry.t-_init_odofactors.back().t) > update_age_filter_reset_th)
+        {
+            _do_restart = true;
+            Log::print(LOG_INFO, "GtsamFilter::addOdometry: Forcing reset of filter due to timeout (%.1f > %.1f)\n", 
+                       fabs(odometry.t-_init_odofactors.back().t), update_age_filter_reset_th);
+        }
+
     _init_odofactors.push_back(odometry);
     _new_odo_factors.push_back(odometry);
     _total_odofactors_added++;
+
 
     return true;
 }

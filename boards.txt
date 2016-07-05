@@ -1,40 +1,46 @@
 ##############################################################
 
 lpsv11_16.name=LPS v1.1 5V/16MHz
+lpsv11_16.upload.tool=arduino:avrdude
 lpsv11_16.upload.protocol=arduino
 lpsv11_16.upload.maximum_size=30720
 lpsv11_16.upload.speed=57600
 lpsv11_16.upload.disable_flushing=true
+lpsv11_16.bootloader.tool=arduino:avrdude
 lpsv11_16.bootloader.low_fuses=0xff
 lpsv11_16.bootloader.high_fuses=0xDE
 lpsv11_16.bootloader.extended_fuses=0x05
-lpsv11_16.bootloader.path=optiboot
 lpsv11_16.bootloader.file=optiboot-lpsv11_16.hex
 lpsv11_16.bootloader.unlock_bits=0x3F
 lpsv11_16.bootloader.lock_bits=0x2F
+
 lpsv11_16.build.mcu=atmega328p
 lpsv11_16.build.f_cpu=16000000L
-lpsv11_16.build.core=arduino
-lpsv11_16.build.variant=eightanaloginputs
+lpsv11_16.build.board=AVR_LPSV11_16
+lpsv11_16.build.core=arduino:arduino
+lpsv11_16.build.variant=arduino:eightanaloginputs
 
 ##############################################################
 
 lpsv11_20.name=LPS v1.1 5V/20MHz
+lpsv11_20.upload.tool=arduino:avrdude
 lpsv11_20.upload.protocol=arduino
 lpsv11_20.upload.maximum_size=30720
 lpsv11_20.upload.speed=57600
 lpsv11_20.upload.disable_flushing=true
+lpsv11_20.bootloader.tool=arduino:avrdude
 lpsv11_20.bootloader.low_fuses=0xff
 lpsv11_20.bootloader.high_fuses=0xDE
 lpsv11_20.bootloader.extended_fuses=0x05
-lpsv11_20.bootloader.path=optiboot
 lpsv11_20.bootloader.file=optiboot-lpsv11_20.hex
 lpsv11_20.bootloader.unlock_bits=0x3F
 lpsv11_20.bootloader.lock_bits=0x2F
+
 lpsv11_20.build.mcu=atmega328p
 lpsv11_20.build.f_cpu=16000000L
-lpsv11_20.build.core=arduino
-lpsv11_20.build.variant=eightanaloginputs
+lpsv11_20.build.board=AVR_LPSV11_20
+lpsv11_20.build.core=arduino:arduino
+lpsv11_20.build.variant=arduino:eightanaloginputs
 
 ##############################################################
 
@@ -58,40 +64,45 @@ lpsv12_16.build.variant=eightanaloginputs
 ##############################################################
 
 lpsminiv10_8.name=LPSmini v1.0 3.3V/8MHz
+lpsminiv10_8.upload.tool=arduino:avrdude
 lpsminiv10_8.upload.protocol=arduino
 lpsminiv10_8.upload.maximum_size=30720
 lpsminiv10_8.upload.speed=57600
 lpsminiv10_8.upload.disable_flushing=true
+lpsminiv10_8.bootloader.tool=arduino:avrdude
 lpsminiv10_8.bootloader.low_fuses=0xff
 lpsminiv10_8.bootloader.high_fuses=0xde
 lpsminiv10_8.bootloader.extended_fuses=0x05
-lpsminiv10_8.bootloader.path=optiboot
 lpsminiv10_8.bootloader.file=optiboot-lpsminiv10_8.hex
 lpsminiv10_8.bootloader.unlock_bits=0x3F
 lpsminiv10_8.bootloader.lock_bits=0x2F
+
 lpsminiv10_8.build.mcu=atmega328p
 lpsminiv10_8.build.f_cpu=8000000L
-lpsminiv10_8.build.core=arduino
-lpsminiv10_8.build.variant=eightanaloginputs
+lpsminiv10_8.build.board=AVR_LPSMINIV10_8
+lpsminiv10_8.build.core=arduino:arduino
+lpsminiv10_8.build.variant=arduino:eightanaloginputs
 
 ##############################################################
 
 lpsminiv10_12.name=LPSmini v1.0 3.3V/12MHz
+lpsminiv10_12.upload.tool=arduino:avrdude
 lpsminiv10_12.upload.protocol=arduino
 lpsminiv10_12.upload.maximum_size=30720
 lpsminiv10_12.upload.speed=57600
 lpsminiv10_12.upload.disable_flushing=true
+lpsminiv10_12.bootloader.tool=arduino:avrdude
 lpsminiv10_12.bootloader.low_fuses=0xff
 lpsminiv10_12.bootloader.high_fuses=0xde
 lpsminiv10_12.bootloader.extended_fuses=0x05
-lpsminiv10_12.bootloader.path=optiboot
 lpsminiv10_12.bootloader.file=optiboot-lpsminiv10_12.hex
 lpsminiv10_12.bootloader.unlock_bits=0x3F
 lpsminiv10_12.bootloader.lock_bits=0x2F
 lpsminiv10_12.build.mcu=atmega328p
 lpsminiv10_12.build.f_cpu=12000000L
-lpsminiv10_12.build.core=arduino
-lpsminiv10_12.build.variant=eightanaloginputs
+lpsminiv10_12.build.board=AVR_LPSMINIV10_12
+lpsminiv10_12.build.core=arduino:arduino
+lpsminiv10_12.build.variant=arduino:eightanaloginputs
 
 ##############################################################
 
