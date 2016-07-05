@@ -13,19 +13,20 @@
                     "category": "LPS",
                     "name": "lps",
                     "architecture": "avr",
-                    "version": "0.0.2",
+                    "version": "0.0.7",
                     "help": {
                         "online": "http://www.loligo.se"
                     },
-                    "url": "https://github.com/loligo/lps/archive/v0.0.2.zip",
-                    "archiveFileName": "v0.0.2.zip",
-                    "checksum": "SHA-256:25d2d9586b5040e799b3b78715da8ba38ae0cd3caa793e302121e211d8ee2310",
+                    "url": "https://github.com/loligo/lps/archive/v0.0.7.zip",
+                    "archiveFileName": "v0.0.7.zip",
+                    "checksum": "SHA-256:8ed3d9b053735829c6eadfde0cd9eae49d5955ecdf08317b0bf0bbb7a1dd39cc",
                     "boards" : [
                         { "name": "LPS v1.1 5V/16MHz" },
                         { "name": "LPS v1.1 5V/20MHz" },
+                        { "name": "LPS v1.2 5V/16MHz" },
                         { "name": "LPSmini v1.0 3.3V/8MHz" },
-                        { "name": "LPSmini v1.0 3.3V/12MHz" }
-
+                        { "name": "LPSmini v1.0 3.3V/12MHz" },
+                        { "name": "LPSmini v1.1 3.3V/12MHz" }
                     ],
                     "toolsDependencies": [
                         {
@@ -39,62 +40,7 @@
                             "version": "6.0.1-arduino5"
                         }
                     ]
-                }
-            ],
-            "tools":[]
-        },
-        {
-            "name": "Lps",
-            "maintainer": "Loligo",
-            "websiteURL": "",
-            "email": "info@loligo.se",
-            "help": {
-                "online": "http://www.loligo.se"
-            },
-            "platforms": [
-                {
-                    "category": "LPS",
-                    "name": "lps",
-                    "architecture": "avr",
-                    "version": "0.0.4",
-                    "help": {
-                        "online": "http://www.loligo.se"
-                    },
-                    "url": "https://github.com/loligo/lps/archive/v0.0.4.zip",
-                    "archiveFileName": "v0.0.4.zip",
-                    "checksum": "SHA-256:fee6978f36e5d941cd3b7764c1bbea3902bc71626a5f70778d187c8b654001d1",
-                    "boards" : [
-                        { "name": "LPS v1.1 5V/16MHz" },
-                        { "name": "LPS v1.1 5V/20MHz" },
-                        { "name": "LPSmini v1.0 3.3V/8MHz" },
-                        { "name": "LPSmini v1.0 3.3V/12MHz" }
-
-                    ],
-                    "toolsDependencies": [
-                        {
-                            "packager": "arduino",
-                            "name": "avr-gcc",
-                            "version": "4.8.1-arduino5"
-                        },
-                        {
-                            "packager": "arduino",
-                            "name": "avrdude",
-                            "version": "6.0.1-arduino5"
-                        }
-                    ]
-                }
-            ],
-            "tools":[]
-        },
-        {
-            "name": "Lps",
-            "maintainer": "Loligo",
-            "websiteURL": "",
-            "email": "info@loligo.se",
-            "help": {
-                "online": "http://www.loligo.se"
-            },
-            "platforms": [
+                },
                 {
                     "category": "LPS",
                     "name": "lps",
@@ -128,51 +74,6 @@
                 }
             ],
             "tools":[]
-        },
-        {
-            "name": "Lps",
-            "maintainer": "Loligo",
-            "websiteURL": "",
-            "email": "info@loligo.se",
-            "help": {
-                "online": "http://www.loligo.se"
-            },
-            "platforms": [
-                {
-                    "category": "LPS",
-                    "name": "lps",
-                    "architecture": "avr",
-                    "version": "0.0.7",
-                    "help": {
-                        "online": "http://www.loligo.se"
-                    },
-                    "url": "https://github.com/loligo/lps/archive/v0.0.7.zip",
-                    "archiveFileName": "v0.0.7.zip",
-                    "checksum": "SHA-256:8ed3d9b053735829c6eadfde0cd9eae49d5955ecdf08317b0bf0bbb7a1dd39cc",
-                    "boards" : [
-                        { "name": "LPS v1.1 5V/16MHz" },
-                        { "name": "LPS v1.1 5V/20MHz" },
-                        { "name": "LPS v1.2 5V/16MHz" },
-                        { "name": "LPSmini v1.0 3.3V/8MHz" },
-                        { "name": "LPSmini v1.0 3.3V/12MHz" },
-                        { "name": "LPSmini v1.1 3.3V/12MHz" }
-                    ],
-                    "toolsDependencies": [
-                        {
-                            "packager": "arduino",
-                            "name": "avr-gcc",
-                            "version": "4.8.1-arduino5"
-                        },
-                        {
-                            "packager": "arduino",
-                            "name": "avrdude",
-                            "version": "6.0.1-arduino5"
-                        }
-                    ]
-                }
-            ],
-            "tools":[]
         }
-
     ]
 }
