@@ -44,6 +44,26 @@ lpsv11_20.build.variant=arduino:eightanaloginputs
 
 ##############################################################
 
+lpsv12_16.name=LPS v1.2 5V/16MHz
+lpsv12_16.upload.protocol=arduino
+lpsv12_16.upload.maximum_size=30720
+lpsv12_16.upload.speed=57600
+lpsv12_16.upload.disable_flushing=true
+lpsv12_16.bootloader.low_fuses=0xff
+lpsv12_16.bootloader.high_fuses=0xDE
+lpsv12_16.bootloader.extended_fuses=0x05
+lpsv12_16.bootloader.file=optiboot-lpsv11_16.hex
+lpsv12_16.bootloader.unlock_bits=0x3F
+lpsv12_16.bootloader.lock_bits=0x2F
+
+lpsv12_16.build.mcu=atmega328p
+lpsv12_16.build.f_cpu=16000000L
+lpsv12_16.build.board=AVR_LPSV12_16
+lpsv12_16.build.core=arduino:arduino
+lpsv12_16.build.variant=arduino:eightanaloginputs
+
+##############################################################
+
 lpsminiv10_8.name=LPSmini v1.0 3.3V/8MHz
 lpsminiv10_8.upload.tool=arduino:avrdude
 lpsminiv10_8.upload.protocol=arduino
@@ -84,4 +104,23 @@ lpsminiv10_12.build.f_cpu=12000000L
 lpsminiv10_12.build.board=AVR_LPSMINIV10_12
 lpsminiv10_12.build.core=arduino:arduino
 lpsminiv10_12.build.variant=arduino:eightanaloginputs
+
+##############################################################
+
+lpsminiv11_12.name=LPSmini v1.1 3.3V/12MHz
+lpsminiv11_12.upload.protocol=arduino
+lpsminiv11_12.upload.maximum_size=30720
+lpsminiv11_12.upload.speed=57600
+lpsminiv11_12.upload.disable_flushing=true
+lpsminiv11_12.bootloader.low_fuses=0xff
+lpsminiv11_12.bootloader.high_fuses=0xde
+lpsminiv11_12.bootloader.extended_fuses=0x05
+lpsminiv11_12.bootloader.file=optiboot-lpsminiv10_12.hex
+lpsminiv11_12.bootloader.unlock_bits=0x3F
+lpsminiv11_12.bootloader.lock_bits=0x2F
+lpsminiv11_12.build.mcu=atmega328p
+lpsminiv11_12.build.f_cpu=12000000L
+lpsminiv11_12.build.board=AVR_LPSMINIV11_12
+lpsminiv11_12.build.core=arduino:arduino
+lpsminiv11_12.build.variant=arduino:eightanaloginputs
 
