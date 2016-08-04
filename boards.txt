@@ -45,6 +45,7 @@ lpsv11_20.build.variant=arduino:eightanaloginputs
 ##############################################################
 
 lpsv12_16.name=LPS v1.2 5V/16MHz
+lpsv12_16.upload.tool=arduino:avrdude
 lpsv12_16.upload.protocol=arduino
 lpsv12_16.upload.maximum_size=30720
 lpsv12_16.upload.speed=57600
