@@ -109,6 +109,7 @@ lpsminiv10_12.build.variant=arduino:eightanaloginputs
 ##############################################################
 
 lpsminiv11_12.name=LPSmini v1.1 3.3V/12MHz
+lpsminiv11_12.upload.tool=arduino:avrdude
 lpsminiv11_12.upload.protocol=arduino
 lpsminiv11_12.upload.maximum_size=30720
 lpsminiv11_12.upload.speed=57600
