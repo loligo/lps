@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(lps)
+project(lps_twr_messages)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -7,14 +7,8 @@ project(lps)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
-  std_msgs
   message_generation
-  visualization_msgs
 )
-
-## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
-find_package(GTSAM)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -112,16 +106,11 @@ catkin_package(
 ## Build ##
 ###########
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x")
-
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
-  /usr/local/include/loligo/
-  /usr/local/include/loligo/core
-  /usr/local/include/loligo/serial_cobs
 )
 
 ## Declare a C++ library
@@ -133,43 +122,6 @@ include_directories(
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 # add_dependencies(lps ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-## Declare a C++ executable
-add_executable(serialtalker cpp/serial_talker.cpp)
-
-## Add cmake target dependencies of the executable
-## same as for the library above
-add_dependencies(serialtalker ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-## Specify libraries to link a library or executable target against
-target_link_libraries(serialtalker
-  ${catkin_LIBRARIES}
-  libserial_cobs.so
-  libloligo_core.so
-)
-
-
-## Declare a C++ executable
-add_executable(locationtracker 
-  cpp/locationtracker.cpp
-  cpp/GtsamFilter.cpp
-  cpp/MobileAnchor.cpp
-)
-
-## Add cmake target dependencies of the executable
-## same as for the library above
-add_dependencies(locationtracker ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-## Specify libraries to link a library or executable target against
-target_link_libraries(locationtracker
-  ${catkin_LIBRARIES}
-  libloligo_slam.so
-  libloligo_core.so
-  libloligo_db.so
-  rt
-  gtsam
-)
-
 
 #############
 ## Install ##

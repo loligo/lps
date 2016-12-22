@@ -2,8 +2,8 @@
   <arg name="record_lpsranges" default="true" />
   
   <group>
-    <node pkg="lps" type="serialtalker" name="serialtalker" respawn="true" respawn_delay="5" output="screen"></node>
-    <node pkg="lps" type="locationtracker" name="locationtracker" respawn="true" respawn_delay="5"></node>
+    <node pkg="lps_twr_serial" type="serialtalker" name="serialtalker" respawn="true" respawn_delay="5" output="screen"></node>
+    <node pkg="lps_twr_tracker" type="locationtracker" name="locationtracker" respawn="true" respawn_delay="5"></node>
   </group>
   
   <node pkg="rosbag" type="record" name="rosbag_record_lpsranges"
