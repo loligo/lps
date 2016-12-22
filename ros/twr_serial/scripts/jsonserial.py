@@ -42,8 +42,8 @@ class JsonSerial:
         rospy.init_node('jsonserial', anonymous=True, log_level=rospy.INFO)
         pub = rospy.Publisher('uwbjson', String, queue_size=100)
 
-        self.s_devname = rospy.get_param('serial_device','/dev/ttyUSB0')
-        self.init_device():
+        self.s_devname = rospy.get_param('~serial_device','/dev/ttyUSB0')
+        self.init_device()
         
         # Eternal loop
         while not rospy.is_shutdown():
