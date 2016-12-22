@@ -136,13 +136,13 @@ bool GtsamFilter::initialise(unsigned nranges_to_use, vector<double> Z)
     for (list<Point3>::iterator ii=solutions.begin();ii!=solutions.end();ii++)
     {
         double err = fabs(c3.distance(*ii)-r3);
-        if (err < tol && (err < best_err || ::isnan(best_err)))
+        if (err < tol && (err < best_err || isnan(best_err)))
         {
             best_solution = BedPose((*ii).x(),(*ii).y(),(*ii).z(),0);
             best_err = err;
         }
     }
-    if (::isnan(best_err))
+    if (isnan(best_err))
     {
         Log::print(LOG_INFO, "GtsamFilter::initialise location is NAN\n"); 
         return false;
