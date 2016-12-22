@@ -33,7 +33,7 @@ def talker():
     pub = rospy.Publisher('lps/ranges', LPSRange, queue_size=10)
     rospy.init_node('serialtalker', anonymous=True)
 
-    rate = rospy.Rate(1) # 10hz
+    rate = rospy.Rate(1)
     get_range_packet = Get_Range(0x1000, 0x0000)
 
     s.send_binary('\x00')
