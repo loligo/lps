@@ -1,0 +1,16 @@
+<launch>
+  <arg name="record_uwbjson_data" default="false" />
+  <group>
+    <node pkg="lps_twr_serial" type="jsonserial.py" name="jsonserial_00" respawn="true" respawn_delay="5" output="log">
+      <param name="serial_device" type="string" value="/dev/ttyUSB3" />
+    </node>
+    <node pkg="lps_twr_serial" type="jsonserial.py" name="jsonserial_01" respawn="true" respawn_delay="5" output="log">
+      <param name="serial_device" type="string" value="/dev/ttyUSB4" />
+    </node>
+  </group>
+  
+  <node pkg="rosbag" type="record" name="rosbag_record_lpsjson"
+        args=" -j -o /tmp/lpsjson /uwbjson"
+        if="$(arg record_uwbjson_data)" />
+
+</launch>
