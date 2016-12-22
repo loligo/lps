@@ -12,6 +12,20 @@ class JsonSerial:
         self.s_devname = '/dev/ttyUSB0'
         self.s = 0
 
+    def init_device(self):
+        # Force reset
+        self.s = serial.Serial(self.s_devname)
+        self.s.setDTR(False)
+        rospy.sleep(1.)
+        self.s.flushInput()
+        self.s.setDTR(True)
+
+        # Reopen serial
+        self.s = serial.Serial(self.s_devname,baudrate=115200,timeout=1)
+        rospy.loginfo('Serial port opened:' + self.s.name)
+        self.s.flush()
+        
+        
     def readline(self,timeout):
         self.s.timeout=timeout
         try:
@@ -29,35 +43,17 @@ class JsonSerial:
         pub = rospy.Publisher('uwbjson', String, queue_size=100)
 
         self.s_devname = rospy.get_param('serial_device','/dev/ttyUSB0')
-
-        # Force reset
-        self.s = serial.Serial(self.s_devname)
-        self.s.setDTR(False)
-        rospy.sleep(1.)
-        self.s.flushInput()
-        self.s.setDTR(True)
-
-        # Reopen serial
-        self.s = serial.Serial(self.s_devname,baudrate=115200,timeout=1)
-        rospy.loginfo('Serial port opened:' + self.s.name)
-        self.s.flush()
-
-        count = 0
+        self.init_device():
+        
         # Eternal loop
         while not rospy.is_shutdown():
             retcode,jsonblob = self.readline(5)
             if retcode != 0: continue
 
-            #msg = String()
-            #msg.header.stamp=rospy.Time.now()
-            #msg.header.seq=count
-            #msg.d = jsonblob
-            count+=1
             pub.publish(jsonblob)
             
 
 if __name__ == '__main__':
-    
     try:
         s = JsonSerial()
         s.run()
