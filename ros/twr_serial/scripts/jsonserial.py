@@ -30,7 +30,6 @@ class JsonSerial:
         self.s.timeout=timeout
         try:
             l=self.s.readline().rstrip('\n')
-            rospy.logdebug(b'readline(' + self.s_devname + b'): ')
         except serial.SerialException as e:
             rospy.logdebug(b'readline(' + self.s.name + b'): exception')
             return -10,''
