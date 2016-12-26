@@ -16,7 +16,7 @@ class LocalClock:
         self.tof_offset = 0
         # Kalman filter
         self.P = np.zeros((2,2))
-        self.P[0,0] = 10
+        self.P[0,0] = 1000
         self.P[1,1] = 10
         self.x = np.zeros((2,1)) # Master offset and offset change speed
         # Measurements
@@ -24,10 +24,11 @@ class LocalClock:
         self.l = []
         self.have_init = False
         self.x_pred_err=[]
-
+        self.x_v = []
+        
     def getErrorEstimate():
         return self.x_pred_err
-        
+    
     def addDataPt(self, master_clock, local_clock):
         self.m.append(master_clock)
         self.l.append(local_clock)
@@ -43,7 +44,7 @@ class LocalClock:
         H[0,0]=1
         H[0,1]=0
         
-        R=0.00001
+        R=0.01
         r=1*1
         Q = r*np.eye(2)
 
@@ -107,6 +108,8 @@ class LocalClock:
 
         if need_to_correct_offset:
             self.x[0,0]-=0xFFFFFFFFFF/65535.0/1000000
+
+        self.x_v.append(self.x[1,0])
         rospy.loginfo("new estimate x=[%f,%e] err=%e",self.x[0,0], self.x[1,0], y[0,0]);
         
 
@@ -123,7 +126,7 @@ class Plotter:
         return len(self.data)
         
     def uwbjson_callback(self,d):
-        #if len(self.data) > 500: return
+        if len(self.data) > 500: return
         try:
             a = json.loads(d.data)
         except ValueError:
@@ -176,7 +179,7 @@ def main():
 
     m,l=plotter.getTsDataForId('2')
     
-    plt.subplot(2, 1, 1)
+    plt.subplot(3, 1, 1)
     line_ledgends_A=[]
     line_average, = plt.plot(range(len(l)),m-np.min(m),'.', label='listener 1', linewidth=1.0)
     line_ledgends_A.append(line_average)
@@ -185,7 +188,7 @@ def main():
     plt.xlabel('local clock')
     plt.ylabel('master clock')
 
-    plt.subplot(2, 1, 2)
+    plt.subplot(3, 1, 2)
     line_ledgends_A=[]
     
     line_average, = plt.semilogy(range(len(plotter.lc.x_pred_err)),np.abs(plotter.lc.x_pred_err),'.', label='error', linewidth=1.0)
@@ -195,6 +198,17 @@ def main():
     plt.grid(b=True, which='both')
     plt.xlabel('local clock')
     plt.ylabel('prediction error')
+
+    plt.subplot(3, 1, 3)
+    line_ledgends_A=[]
+    
+    line_average, = plt.plot(range(len(plotter.lc.x_v)),np.abs(plotter.lc.x_v),'.', label='v', linewidth=1.0)
+    line_ledgends_A.append(line_average)
+
+    plt.legend(handles=line_ledgends_A,loc=1)
+    plt.grid(b=True, which='both')
+    plt.xlabel('local clock')
+    plt.ylabel('relative drift speed')
     
     plt.show()
     exit(0)
