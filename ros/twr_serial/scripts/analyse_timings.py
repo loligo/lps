@@ -16,8 +16,8 @@ class LocalClock:
         self.tof_offset = 0
         # Kalman filter
         self.P = np.zeros((2,2))
-        self.P[0,0] = 1000
-        self.P[1,1] = 10
+        self.P[0,0] = 1e14
+        self.P[1,1] = 1e-8
         self.x = np.zeros((2,1)) # Master offset and offset change speed
         # Measurements
         self.m = []
@@ -44,9 +44,10 @@ class LocalClock:
         H[0,0]=1
         H[0,1]=0
         
-        R=0.01
-        r=1*1
-        Q = r*np.eye(2)
+        R=1e12
+        Q = np.eye(2)
+        Q[0,0] = 1e3*1e3
+        Q[1,1] = 2e-6*2e-6
 
         k=0
         lts0 = 0
@@ -68,34 +69,39 @@ class LocalClock:
 
         if (lts1<lts0):
             rospy.loginfo("overflow lts1");
-            lts1+=0xFFFFFFFFFF/65535.0/1000000;
-
+            lts1+=0xFFFFFFFFFF;
+            
         dt = lts1-lts0
+        rospy.loginfo("t@ %f dt: %f (mdt: %f)",lts0,dt,mts1-mts0);
+        rospy.loginfo("lts0: %f lts1: %f",lts0,lts1);
+        rospy.loginfo("mts0: %f mts1: %f",mts0,mts1);
+        F[0,1] = dt
         if self.have_init == False:
             self.have_init = True
-            self.x[0,0] = mts0-lts0
+            self.x[0,0] = mts1
             self.x[1,0] = (mts1-mts0)/dt
-            rospy.loginfo("Initial x=[%f,%e]",self.x[0,0], self.x[1,0]);
-            
-        F[0,1] = dt
+            rospy.loginfo("Initial x=[%f,%e]",self.x[0,0], self.x[1,0]-1.0);
+            return
+
         # PREDICT x, P
         pred_x = np.mat(F) * np.mat(self.x);
-        pred_P = np.mat(F)*np.mat(self.P)*np.mat(F.transpose()) + Q;
-        rospy.loginfo("new prediction xpred=[%f,%e]",pred_x[0,0], pred_x[1,0]-1);
+        pred_P = np.mat(F) * np.mat(self.P) * np.mat(F.transpose()) + Q;
+        rospy.loginfo("new prediction xpred=[%f,%e]",pred_x[0,0], pred_x[1,0]-1.0);
+        rospy.loginfo("ppred=[%e,%e;%e,%e]",pred_P[0,0], pred_P[0,1], pred_P[1,1], pred_P[1,1]);
         
         # Translate measurement / local clock to match current time domain ???
         pred_z = np.mat(H)*np.mat(pred_x);
         need_to_correct_offset = False
+
         if (mts1<mts0):
             rospy.loginfo("overflow mts1");
-            mts1+=0xFFFFFFFFFF/65535.0/1000000;
+            mts1+=0xFFFFFFFFFF;
             need_to_correct_offset = True
-
             
         z=np.zeros((1,1))
         z[0,0]=mts1
         y = z - pred_z;
-        self.x_pred_err.append(y[0,0])
+        self.x_pred_err.append(y[0,0]/65535.0/1000000*3e8*1000)
         S = np.mat(H)*np.mat(pred_P)* np.mat(H.transpose()) + np.ones((1,1))*R;
         
         Sinv = 1.0/S[0,0];
@@ -103,14 +109,19 @@ class LocalClock:
 
         # Gate?!
         K = np.mat(pred_P)* np.mat(H.transpose())*np.mat(Sinv)
-        self.x = pred_x + K*y;
-        self.P = np.mat(np.eye(2) - K*H)*np.mat(pred_P);
+        print esquare
+        if esquare < 1e-6:
+            self.x = pred_x + K*y;
+            self.P = np.mat(np.eye(2) - K*H)*np.mat(pred_P);
+        else:
+            self.x = pred_x
+            self.P = pred_P
 
         if need_to_correct_offset:
-            self.x[0,0]-=0xFFFFFFFFFF/65535.0/1000000
+            self.x[0,0]-=0xFFFFFFFFFF
 
-        self.x_v.append(self.x[1,0])
-        rospy.loginfo("new estimate x=[%f,%e] err=%e",self.x[0,0], self.x[1,0], y[0,0]);
+        self.x_v.append(self.x[1,0]-1.0)
+        rospy.loginfo("new estimate x=[%f,%e] err=%e",self.x[0,0], self.x[1,0]-1.0, y[0,0]);
         
 
         
@@ -126,27 +137,39 @@ class Plotter:
         return len(self.data)
         
     def uwbjson_callback(self,d):
-        if len(self.data) > 500: return
+        if len(self.data) > 505: return
         try:
             a = json.loads(d.data)
         except ValueError:
             return;
         self.data.append(a)
 
-    def extractts(self,d,offset):
+    def extractts_old(self,d,offset):
         ts=np.uint64(0)
         for i in range(0,5): ts = ts + (int(d[offset+i],16) << i*8)
         return ts
-        
+
+    def extractts(self,d,offset):
+        ts=np.uint64(0)
+        o = offset*2
+        for i in range(0,5):
+            start=o+i*2
+            end=start+2
+            ts = ts + (int(d[start:end],16) << i*8)
+        #rospy.loginfo("ts: %X", ts)    
+        return ts
         
     def getTsDataForId(self,id):
         remote_ts = []
         local_ts = [] 
         for d in self.data:
             if d['l_id']==id:
-                master_clock = self.extractts(d['data'],2)/65535.0/1000000
-                local_clock = int(d['dw_ts'],16)/65535.0/1000000
-                print master_clock,local_clock
+                try:
+                    master_clock = self.extractts(d['data'].replace(' ',''),10)
+                except KeyError:
+                    continue;
+                print(d)
+                local_clock = int(d['dw_ts'],16)
                 remote_ts.append(master_clock)
                 local_ts.append(local_clock)
                 self.lc.addDataPt(master_clock, local_clock)
@@ -197,7 +220,7 @@ def main():
     plt.legend(handles=line_ledgends_A,loc=1)
     plt.grid(b=True, which='both')
     plt.xlabel('local clock')
-    plt.ylabel('prediction error')
+    plt.ylabel('prediction error(mm)')
 
     plt.subplot(3, 1, 3)
     line_ledgends_A=[]
@@ -207,6 +230,7 @@ def main():
 
     plt.legend(handles=line_ledgends_A,loc=1)
     plt.grid(b=True, which='both')
+    #plt.ylim([-7e-6,-5e-6])
     plt.xlabel('local clock')
     plt.ylabel('relative drift speed')
     
