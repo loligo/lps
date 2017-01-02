@@ -9,7 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   visualization_msgs
-  lps_twr_messages
+  lps_messages
 )
 
 ## System dependencies are found with CMake's conventions

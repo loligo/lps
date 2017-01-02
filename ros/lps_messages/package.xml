@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>lps_twr_messages</name>
+  <name>lps_messages</name>
   <version>0.0.0</version>
   <description>The LPS Messages package</description>
 
