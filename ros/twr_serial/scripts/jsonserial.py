@@ -17,13 +17,14 @@ class JsonSerial:
         self.id = -1
 
     def init_device(self):
-        # Force reset
+        # Try to open the given device name
         try:
             self.s = serial.Serial(self.s_devname)
         except serial.serialutil.SerialException:
             rospy.logwarn('Could not open ' + self.s_devname)
             return False
         
+        # Force reset of arduino
         self.s.setDTR(False)
         rospy.sleep(1.)
         self.s.flushInput()
@@ -35,6 +36,9 @@ class JsonSerial:
         self.s.flush()
         return True
         
+    # Sets the antenna delay, takes 32bit word
+    # - top 16 bits is our address if it matches,
+    # - lower 16 bits is the new antenna delay
     def callback_setAntennaDelay(self, d):
         if (((d.data & 0xffff0000) >> 16) != self.id): return;
         self.slave_antenna_delay = d.data
@@ -43,11 +47,15 @@ class JsonSerial:
         self.s.write(s + b'\r');
         rospy.loginfo(rospy.get_caller_id() + " New antenna delay %d", self.slave_antenna_delay)
 
-    def callback_twrwith(self, d):
+        
+    # Initiate TWR, takes 32bit word
+    # - top 16 bits is from address,
+    # - lower 16 bits is destination address
+    def callback_starttwrwith(self, d):
         if (((d.data & 0xffff0000) >> 16) != self.id): return;
         s=b't'+struct.pack('>H', (d.data&0xffff)).encode('hex').upper()
-        rospy.loginfo(b'Init twr ranging: ' + s)
         self.s.write(s + b'\r');
+        rospy.loginfo("Init TWR ranging: 0x%X -> 0x%X", ((d.data & 0xffff0000) >> 16), (d.data & 0xffff))
         
     def readline(self,timeout):
         self.s.timeout=timeout
@@ -64,35 +72,31 @@ class JsonSerial:
         rospy.init_node('jsonserial', anonymous=True, log_level=rospy.INFO)
         pub = rospy.Publisher('uwbjson', String, queue_size=100)
         rospy.Subscriber("antenna_dly", UInt32, self.callback_setAntennaDelay)
-        rospy.Subscriber("aa_twr", UInt32, self.callback_twrwith)
+        rospy.Subscriber("start_twr_between", UInt32, self.callback_starttwrwith)
 
+        # Open our serial port
         self.s_devname = rospy.get_param('~serial_device','/dev/ttyUSB0')
         okinit = self.init_device()
-        if (okinit == False):
-            exit(0);
+        if (okinit == False): exit(0);
         
-        # Eternal loop
-        started_clockref = False
+        # Once opened ok enter an eternal loop
         while not rospy.is_shutdown():
             # We don't know who's on the other end yet?
             if self.id < 0 : self.s.write(b'?\r')
-            if self.id == 0 and started_clockref==False:
-                self.s.write(b'm0064\r')
-                started_clockref = True
             
             retcode,jsonblob = self.readline(5)
-            if retcode != 0: continue
-            if len(jsonblob) == 0: continue
-            if jsonblob[0] == "#": continue
+            if retcode != 0: continue        # Ignore timeout or error
+            if len(jsonblob) == 0: continue  # Ignore empty packet
+            if jsonblob[0] == "#": continue  # Ignore debug / human readable output
 
-            # Verify that this is json
+            # Verify that this is interpretable json
             try:
                 d = json.loads(jsonblob)
             except ValueError:
                 continue
 
+            # Do we know our own id?
             if self.id < 0:
-                #extract out id
                 try:
                     if d['id'] > -1:
                         self.id=int(d['id'],16);

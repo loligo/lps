@@ -1,10 +1,19 @@
 <launch>
-  <arg name="record_uwbjson_data" default="false" />
+  <arg name="record_uwbjson_data" default="true" />
   <group>
-    <node pkg="lps_twr_serial" type="jsonserial.py" name="jsonserial_00" respawn="true" respawn_delay="5" output="log">
+    <node pkg="lps_twr_serial" type="jsonserial.py" name="jsonserial_00" respawn="true" respawn_delay="30" output="log">
+      <param name="serial_device" type="string" value="/dev/ttyUSB0" />
+    </node>
+    <node pkg="lps_twr_serial" type="jsonserial.py" name="jsonserial_01" respawn="true" respawn_delay="30" output="log">
+      <param name="serial_device" type="string" value="/dev/ttyUSB1" />
+    </node>
+    <node pkg="lps_twr_serial" type="jsonserial.py" name="jsonserial_02" respawn="true" respawn_delay="30" output="log">
+      <param name="serial_device" type="string" value="/dev/ttyUSB2" />
+    </node>
+    <node pkg="lps_twr_serial" type="jsonserial.py" name="jsonserial_03" respawn="true" respawn_delay="30" output="log">
       <param name="serial_device" type="string" value="/dev/ttyUSB3" />
     </node>
-    <node pkg="lps_twr_serial" type="jsonserial.py" name="jsonserial_01" respawn="true" respawn_delay="5" output="log">
+    <node pkg="lps_twr_serial" type="jsonserial.py" name="jsonserial_04" respawn="true" respawn_delay="30" output="log">
       <param name="serial_device" type="string" value="/dev/ttyUSB4" />
     </node>
   </group>
