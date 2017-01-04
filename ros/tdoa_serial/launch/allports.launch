@@ -1,0 +1,26 @@
+<launch>
+  <arg name="record_uwb_data" default="true" />
+  <group>
+    <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="1 0 0 0 0 0 1 imu5_parent imu5 100" />
+    <node pkg="lps_tdoa_serial" type="tdoa_usb_anchor.py" name="tdoaserial_00" respawn="true" respawn_delay="30" output="log">
+      <param name="serial_device" type="string" value="/dev/ttyUSB0" />
+    </node>
+    <node pkg="lps_tdoa_serial" type="tdoa_usb_anchor.py" name="tdoaserial_01" respawn="true" respawn_delay="30" output="log">
+      <param name="serial_device" type="string" value="/dev/ttyUSB1" />
+    </node>
+    <node pkg="lps_tdoa_serial" type="tdoa_usb_anchor.py" name="tdoaserial_02" respawn="true" respawn_delay="30" output="log">
+      <param name="serial_device" type="string" value="/dev/ttyUSB2" />
+    </node>
+    <node pkg="lps_tdoa_serial" type="tdoa_usb_anchor.py" name="tdoaserial_03" respawn="true" respawn_delay="30" output="log">
+      <param name="serial_device" type="string" value="/dev/ttyUSB3" />
+    </node>
+    <node pkg="lps_tdoa_serial" type="tdoa_usb_anchor.py" name="tdoaserial_04" respawn="true" respawn_delay="30" output="log">
+      <param name="serial_device" type="string" value="/dev/ttyUSB4" />
+    </node>
+  </group>
+  
+  <node pkg="rosbag" type="record" name="rosbag_record_lpsjson"
+        args=" -j -o /tmp/tdoarec /synced_uwb_json /imu/data /tf"
+        if="$(arg record_uwb_data)" />
+
+</launch>
