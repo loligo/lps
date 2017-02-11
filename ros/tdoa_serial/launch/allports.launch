@@ -1,7 +1,9 @@
 <launch>
   <arg name="record_uwb_data" default="true" />
   <group>
-    <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="1 0 0 0 0 0 1 imu5_parent imu5 100" />
+    <node pkg="tf" type="static_transform_publisher" name="link3_broadcaster" args="1 0 0 0 0 0 1 imu3_parent imu3 100" />
+    <node pkg="tf" type="static_transform_publisher" name="link4_broadcaster" args="1 0 0 0 0 0 1 imu4_parent imu4 100" />
+    <node pkg="tf" type="static_transform_publisher" name="link5_broadcaster" args="1 0 0 0 0 0 1 imu5_parent imu5 100" />
     <node pkg="lps_tdoa_serial" type="tdoa_usb_anchor.py" name="tdoaserial_00" respawn="true" respawn_delay="30" output="log">
       <param name="serial_device" type="string" value="/dev/ttyUSB0" />
     </node>
@@ -16,7 +18,8 @@
     </node>
     <node pkg="lps_tdoa_serial" type="tdoa_usb_anchor.py" name="tdoaserial_04" respawn="true" respawn_delay="30" output="log">
       <param name="serial_device" type="string" value="/dev/ttyUSB4" />
-    </node>
+      </node>
+    <node pkg="rviz" type="rviz" name="imu_visualisation" output="screen" args="-d $(find lps_tdoa_serial)/rviz/imu4.rviz"></node>
   </group>
   
   <node pkg="rosbag" type="record" name="rosbag_record_lpsjson"
