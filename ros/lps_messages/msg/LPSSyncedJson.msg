@@ -1,8 +1,10 @@
 Header header
+uint8 seq_id
 uint16 listener_id
 uint16 source_addr
 uint16 dest_addr
 uint64 ts
 uint64 ts_adj
 float32 rssi
+float32 twr
 string data

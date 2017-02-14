@@ -79,6 +79,10 @@ class TdoaSerialAnchor:
 
     # Extracting data from the hex coded packet
     #
+    def extract_seq_id(self,d):
+        o = 2*2
+        return int(d[o:(o+2)],16)
+
     def extract_packet_type(self,d):
         o = 9*2
         return int(d[o:(o+2)],16)
@@ -229,6 +233,11 @@ class TdoaSerialAnchor:
                 rospy.loginfo("Order TWR with master")
                 self.s.write(b't0000\r')
                 twr_throttle = 10
+
+            if self.id != 0 and self.lc.tof_offset!=0 and twr_throttle<1:
+                rospy.loginfo("Order TWR with master")
+                self.s.write(b't0000\r')
+                twr_throttle = 1000
                 
             retcode,jsonblob = self.readline(5)
             if retcode != 0: continue        # Ignore timeout or error
@@ -264,6 +273,7 @@ class TdoaSerialAnchor:
             except KeyError:
                 return
 
+            seq_id = self.extract_seq_id(d['d'])
             source_address = self.extract_source_address(d['d'])
             dest_address   = self.extract_dest_address(d['d'])
             
@@ -287,7 +297,10 @@ class TdoaSerialAnchor:
                 tof = int(d['tof'],16)
                 if source_address == 0x0000 and dest_address == self.id:
                     self.lc.tof_offset = tof
-                    rospy.loginfo("TOF Offset updated: 0x%X", tof)
+                    rospy.loginfo("TOF Offset updated: 0x%X (%.0fmm)", tof, tof*1.0/499.2e6/128.0*299702547.0)
+                if source_address == self.id and dest_address == 0x0000:
+                    self.lc.tof_offset = tof
+                    rospy.loginfo("TOF Offset updated: 0x%X (%.0fmm)", tof, tof*1.0/499.2e6/128.0*299702547.0)
             except KeyError:
                 tof = 0
                 
@@ -295,11 +308,13 @@ class TdoaSerialAnchor:
             msg = LPSSyncedJson()
             msg.header.stamp=rospy.Time.now()
             msg.listener_id = self.id
+            msg.seq_id = seq_id
             msg.source_addr = source_address
             msg.dest_addr = dest_address
             msg.ts = ts
             msg.ts_adj = ts_adj
             msg.rssi = rssi
+            msg.twr = tof*1.0/499.2e6/128.0*299702547.0
             msg.data = str(d['d'])
             pub.publish(msg)
             
