@@ -110,7 +110,7 @@ class TdoaSerialAnchor:
     def extractImuData(self,source_address,d):
         msg = Imu()
         msg.header.stamp=rospy.Time.now()
-        msg.header.frame_id='imu' + str(source_address)
+        msg.header.frame_id='imu' + format(source_address,'x')
         #quarternion
         quat_sens=1073741824.0
         q=[]
@@ -218,6 +218,7 @@ class TdoaSerialAnchor:
         # Once opened ok enter an eternal loop
         clock_sync_initiated = False
         twr_throttle = 10
+        last_twr_time = rospy.Time(0).secs
         while not rospy.is_shutdown():
             # We don't know who's on the other end yet?
             if self.id < 0 : self.s.write(b'?\r')
@@ -230,18 +231,23 @@ class TdoaSerialAnchor:
             # order a twr with master
             twr_throttle -= 1
             if self.id != 0 and self.lc.tof_offset==0 and twr_throttle<1:
-                rospy.loginfo("Order TWR with master")
+                rospy.loginfo("Order TWR with master - initial")
                 self.s.write(b't0000\r')
-                twr_throttle = 10
+                twr_throttle = 100
 
-            if self.id != 0 and self.lc.tof_offset!=0 and twr_throttle<1:
-                rospy.loginfo("Order TWR with master")
+            if self.id != 0 and self.lc.tof_offset!=0 and rospy.Time(0).secs - last_twr_time > 10:
+                rospy.loginfo("Order TWR with master - regular")
                 self.s.write(b't0000\r')
-                twr_throttle = 1000
                 
-            retcode,jsonblob = self.readline(5)
+            retcode,jsonblob = self.readline(1)
+            if retcode == -10:
+                rospy.loginfo("timeout")
+                self.s.write(b'?\r')
+                continue;
             if retcode != 0: continue        # Ignore timeout or error
             if len(jsonblob) == 0: continue  # Ignore empty packet
+            rospy.loginfo("packet: '%s'", jsonblob)
+
             if jsonblob[0] == "#": continue  # Ignore debug / human readable output
 
             # Verify that this is interpretable json
@@ -249,7 +255,7 @@ class TdoaSerialAnchor:
                 d = json.loads(jsonblob)
             except ValueError:
                 continue
-
+            
             # Do we know our own id?
             if self.id < 0:
                 try:
@@ -263,6 +269,7 @@ class TdoaSerialAnchor:
             try:
                 ts = int(d['ts'],16)
                 rssi = int(d['rssi'],10)
+                if len(d['d']) > 1024: continue;
             except KeyError:
                 print(d)
                 continue
@@ -279,8 +286,8 @@ class TdoaSerialAnchor:
             
             if packet_type == 0x20:
                 self.updateClockRef(d)
-                continue
-            if packet_type == 0x30:
+                continue            
+            if packet_type == 0x30 and len(d['d']) > 93:
                 msg = self.extractImuData(source_address,d['d'])
                 imu_pub.publish(msg)
                 msg = self.extractPressure(source_address,d['d'])
@@ -295,12 +302,13 @@ class TdoaSerialAnchor:
             # to futher adjust our timings
             try:
                 tof = int(d['tof'],16)
-                if source_address == 0x0000 and dest_address == self.id:
+                tof_mm = int(d['tof_mm'],10)
+                if source_address == 0x0000 and dest_address == self.id and tof_mm < 300000:
                     self.lc.tof_offset = tof
-                    rospy.loginfo("TOF Offset updated: 0x%X (%.0fmm)", tof, tof*1.0/499.2e6/128.0*299702547.0)
-                if source_address == self.id and dest_address == 0x0000:
+                    rospy.loginfo("TOF Offset updated: 0x%X (%.0fmm)", tof, tof_mm)
+                if source_address == self.id and dest_address == 0x0000 and tof_mm < 300000:
                     self.lc.tof_offset = tof
-                    rospy.loginfo("TOF Offset updated: 0x%X (%.0fmm)", tof, tof*1.0/499.2e6/128.0*299702547.0)
+                    rospy.loginfo("TOF Offset updated: 0x%X (%.0fmm)", tof, tof_mm)
             except KeyError:
                 tof = 0
                 
@@ -312,12 +320,15 @@ class TdoaSerialAnchor:
             msg.source_addr = source_address
             msg.dest_addr = dest_address
             msg.ts = ts
-            msg.ts_adj = ts_adj
+            msg.ts_adj = int(ts_adj)
             msg.rssi = rssi
             msg.twr = tof*1.0/499.2e6/128.0*299702547.0
             msg.data = str(d['d'])
-            pub.publish(msg)
-            
+            try:
+                pub.publish(msg)
+            except rospy.exceptions.ROSSerializationException:
+                print(msg)
+                
 
 if __name__ == '__main__':
     try:

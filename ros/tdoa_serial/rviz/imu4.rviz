@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /Imu1
+        - /Imu1/Status1
         - /Imu1/Box properties1
         - /Imu1/Axes properties1
       Splitter Ratio: 0.5
@@ -73,10 +74,50 @@ Visualization Manager:
       Topic: /imu/data
       Unreliable: false
       Value: true
+    - Class: rviz/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+        anchor0:
+          Value: true
+        anchor1:
+          Value: true
+        anchor2:
+          Value: true
+        imu3:
+          Value: true
+        imu4:
+          Value: true
+        imu5:
+          Value: true
+        map:
+          Value: true
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        map:
+          anchor0:
+            {}
+          anchor1:
+            {}
+          anchor2:
+            {}
+          imu3:
+            {}
+          imu4:
+            {}
+          imu5:
+            {}
+      Update Interval: 0
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: imu4
+    Fixed Frame: map
     Frame Rate: 30
   Name: root
   Tools:
@@ -97,7 +138,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 18.4933453
+      Distance: 13.8055038
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -111,10 +152,10 @@ Visualization Manager:
       Focal Shape Size: 0.0500000007
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.289797544
+      Pitch: 0.419797421
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.42000723
+      Yaw: 2.28000402
     Saved: ~
 Window Geometry:
   Displays:
