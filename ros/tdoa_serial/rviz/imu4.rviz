@@ -7,7 +7,6 @@ Panels:
         - /Global Options1
         - /Status1
         - /Imu1
-        - /Imu1/Status1
         - /Imu1/Box properties1
         - /Imu1/Axes properties1
       Splitter Ratio: 0.5
@@ -65,9 +64,9 @@ Visualization Manager:
         Box alpha: 1
         Box color: 255; 0; 0
         Enable box: true
-        x_scale: 1
-        y_scale: 1
-        z_scale: 1
+        x_scale: 0.200000003
+        y_scale: 0.200000003
+        z_scale: 0.100000001
       Class: rviz_imu_plugin/Imu
       Enabled: true
       Name: Imu
@@ -85,11 +84,11 @@ Visualization Manager:
           Value: true
         anchor2:
           Value: true
-        imu3:
+        imu1:
           Value: true
-        imu4:
+        imu1004:
           Value: true
-        imu5:
+        imu2:
           Value: true
         map:
           Value: true
@@ -106,11 +105,11 @@ Visualization Manager:
             {}
           anchor2:
             {}
-          imu3:
+          imu1:
             {}
-          imu4:
+          imu1004:
             {}
-          imu5:
+          imu2:
             {}
       Update Interval: 0
       Value: true
@@ -138,24 +137,24 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 13.8055038
+      Distance: 7.47976351
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 7.36100817
-        Y: -6.52401972
-        Z: -3.40299106
+        X: 2.80620909
+        Y: 0.731311023
+        Z: 0.146983415
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.419797421
+      Pitch: 1.47979641
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.28000402
+      Yaw: 4.71505928
     Saved: ~
 Window Geometry:
   Displays:

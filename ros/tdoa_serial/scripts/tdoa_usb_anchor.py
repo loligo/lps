@@ -233,7 +233,7 @@ class TdoaSerialAnchor:
             if self.id != 0 and self.lc.tof_offset==0 and twr_throttle<1:
                 rospy.loginfo("Order TWR with master - initial")
                 self.s.write(b't0000\r')
-                twr_throttle = 100
+                twr_throttle = 10
 
             if self.id != 0 and self.lc.tof_offset!=0 and rospy.Time(0).secs - last_twr_time > 10:
                 rospy.loginfo("Order TWR with master - regular")
@@ -284,7 +284,7 @@ class TdoaSerialAnchor:
             source_address = self.extract_source_address(d['d'])
             dest_address   = self.extract_dest_address(d['d'])
             
-            if packet_type == 0x20:
+            if packet_type == 0x20 and source_address == 0x0000:
                 self.updateClockRef(d)
                 continue            
             if packet_type == 0x30 and len(d['d']) > 93:
@@ -304,10 +304,10 @@ class TdoaSerialAnchor:
                 tof = int(d['tof'],16)
                 tof_mm = int(d['tof_mm'],10)
                 if source_address == 0x0000 and dest_address == self.id and tof_mm < 300000:
-                    self.lc.tof_offset = tof
+                    self.lc.tof_offset = tof/1000.0
                     rospy.loginfo("TOF Offset updated: 0x%X (%.0fmm)", tof, tof_mm)
                 if source_address == self.id and dest_address == 0x0000 and tof_mm < 300000:
-                    self.lc.tof_offset = tof
+                    self.lc.tof_offset = tof/1000.0
                     rospy.loginfo("TOF Offset updated: 0x%X (%.0fmm)", tof, tof_mm)
             except KeyError:
                 tof = 0

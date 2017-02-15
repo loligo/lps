@@ -1,9 +1,12 @@
 <launch>
   <arg name="record_uwb_data" default="true" />
   <group>
+<!--
     <node pkg="tf" type="static_transform_publisher" name="link4_broadcaster" args="2 0 0 0 0 0 1 map imu1004 100" />
     <node pkg="tf" type="static_transform_publisher" name="link5_broadcaster" args="0 2 0 0 0 0 1 map imu1005 100" />
+    -->
 
+    <!--  You'll need to update these to match the locations of your anchors. Anchor0 has to be in origo -->
     <node pkg="tf" type="static_transform_publisher" name="anchor0_broadcaster" args="0 0 0 0 0 0 1 map anchor0 100" />
     <node pkg="tf" type="static_transform_publisher" name="anchor1_broadcaster" args="6.2 0 0 0 0 0 1 map anchor1 100" />
     <node pkg="tf" type="static_transform_publisher" name="anchor2_broadcaster" args="4.38 2.8 0 0 0 0 1 map anchor2 100" />
@@ -22,6 +25,9 @@
     </node>
     <node pkg="lps_tdoa_serial" type="tdoa_usb_anchor.py" name="tdoaserial_04" respawn="true" respawn_delay="30" output="log">
       <param name="serial_device" type="string" value="/dev/ttyUSB4" />
+    </node>
+
+    <node pkg="lps_tdoa_serial" type="tdoa_estimator.py" name="tdoa_estimator_00" respawn="true" respawn_delay="30" output="log">
     </node>
     
     <node pkg="rviz" type="rviz" name="imu_visualisation" output="screen" args="-d $(find lps_tdoa_serial)/rviz/imu4.rviz"></node>

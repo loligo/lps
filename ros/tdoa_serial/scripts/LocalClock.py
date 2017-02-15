@@ -35,7 +35,7 @@ class LocalClock:
         # Predict master ts for this local_ts
         if self.have_init == False: return 0;
         pred_x = self.predict(local_ts)
-        return int(pred_x[0,0]) - self.tof_offset
+        return int(pred_x[0,0]) + self.tof_offset
 
     def predict(self, local_ts):
         if len(self.l) < 1: return -1
