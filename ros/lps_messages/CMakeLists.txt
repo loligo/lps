@@ -46,6 +46,7 @@ add_message_files(
    FILES
    LPSRange.msg
    LPSSyncedJson.msg
+   LPSWirelessSyncStatus.msg
 )
 
 ## Generate services in the 'srv' folder
