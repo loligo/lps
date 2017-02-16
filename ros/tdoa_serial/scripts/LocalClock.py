@@ -21,9 +21,18 @@ class LocalClock:
         self.x_pred_err=[]
         self.x_v = []
         
-    def getErrorEstimate():
+    def getErrorEstimate(self):
+        if len(self.x_pred_err) < 1: return (0,0)
+        if len(self.x_v) < 1: return (0,self.x_pred_err[-1])
+        return (self.x_v[-1],self.x_pred_err[-1])
+
+    def getErrorEstimates(self):
         return self.x_pred_err
-    
+
+    def clearErrorEstimates(self):
+        self.x_pred_err = []
+        self.x_v = []
+
     def addDataPt(self, master_clock, local_clock):
         self.m.append(master_clock)
         self.l.append(local_clock)

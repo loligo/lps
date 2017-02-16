@@ -7,11 +7,14 @@ import struct
 import serial
 import numpy as np
 from std_msgs.msg import UInt32
+from std_msgs.msg import Float32
 from std_msgs.msg import String
 from sensor_msgs.msg import Imu
 from sensor_msgs.msg import Temperature
 from sensor_msgs.msg import FluidPressure
 from lps_messages.msg import LPSSyncedJson
+from lps_messages.msg import LPSRange
+from lps_messages.msg import LPSWirelessSyncStatus
 
 import LocalClock
 
@@ -140,7 +143,6 @@ class TdoaSerialAnchor:
                 start=o+i*2
                 end=start+2
                 v = v + (int(d[start:end],16) << i*8)
-            o+=2*2
             v = np.int16(v)
             g.append(float(v)/gyro_sens)
         msg.angular_velocity.x=g[0]
@@ -167,7 +169,6 @@ class TdoaSerialAnchor:
             start=o+i*2
             end=start+2
             v = v + (int(d[start:end],16) << i*8)
-        o+=4*2
         msg.fluid_pressure = np.int32(v)*1.0
         msg.variance = 0
         return msg
@@ -176,15 +177,14 @@ class TdoaSerialAnchor:
         msg = Temperature()
         msg.header.stamp=rospy.Time.now()
         msg.header.frame_id='imu' + str(source_address)
-        # Barometer
+        # Temperature
         o = 42*2
         v = np.uint32(0)
         for i in range(0,4):
             start=o+i*2
             end=start+2
             v = v + (int(d[start:end],16) << i*8)
-        o+=4*2
-        msg.temperature = np.int32(v)/100.0
+        msg.temperature = -np.int32(v)/100.0
         msg.variance = 0
         return msg
     
@@ -204,6 +204,9 @@ class TdoaSerialAnchor:
     def run(self):
         rospy.init_node('tdoaserialanchor', anonymous=True, log_level=rospy.INFO)
         pub = rospy.Publisher('synced_uwb_json', LPSSyncedJson, queue_size=100)
+        twr_pub = rospy.Publisher('twr', LPSRange, queue_size=100)
+        wireless_clock_pub = rospy.Publisher('wireless_sync', LPSSyncedJson, queue_size=100)
+        wireless_clock_stat_pub = rospy.Publisher('wireless_sync_stat', LPSWirelessSyncStatus, queue_size=100)
         imu_pub = rospy.Publisher('/imu/data', Imu, queue_size=10)
         temp_pub = rospy.Publisher('/imu/temperature', Temperature, queue_size=10)
         pressure_pub = rospy.Publisher('/imu/pressure', FluidPressure, queue_size=10)
@@ -214,11 +217,13 @@ class TdoaSerialAnchor:
         self.s_devname = rospy.get_param('~serial_device','/dev/ttyUSB2')
         okinit = self.init_device()
         if (okinit == False): exit(0);
+
+        twr_update_interval = rospy.get_param('~twr_update_interval',30)
+        twr_update_mode = rospy.get_param('~twr_update_mode','all_lower')
         
         # Once opened ok enter an eternal loop
         clock_sync_initiated = False
-        twr_throttle = 10
-        last_twr_time = rospy.Time(0).secs
+        last_twr_time = 0
         while not rospy.is_shutdown():
             # We don't know who's on the other end yet?
             if self.id < 0 : self.s.write(b'?\r')
@@ -229,19 +234,26 @@ class TdoaSerialAnchor:
 
             # If we don't have an estimation of our tof offset
             # order a twr with master
-            twr_throttle -= 1
-            if self.id != 0 and self.lc.tof_offset==0 and twr_throttle<1:
+            rospy.loginfo("### now=%d last=%d diff=%d",rospy.Time.now().secs,last_twr_time,rospy.Time.now().secs - last_twr_time)
+            if self.id > 0 and self.lc.tof_offset==0 and rospy.Time.now().secs - last_twr_time > 2:
                 rospy.loginfo("Order TWR with master - initial")
                 self.s.write(b't0000\r')
-                twr_throttle = 10
+                self.twr_update_i = self.id-1
+                last_twr_time = rospy.Time.now().secs
 
-            if self.id != 0 and self.lc.tof_offset!=0 and rospy.Time(0).secs - last_twr_time > 10:
-                rospy.loginfo("Order TWR with master - regular")
-                self.s.write(b't0000\r')
+            if self.id > 0 and self.lc.tof_offset>0 and rospy.Time.now().secs - last_twr_time > twr_update_interval:
+                rospy.loginfo("Order TWR with %d - regular", self.twr_update_i)
+                self.s.write(b't' + "{0:0>4}".format(self.twr_update_i,'x') + '\r')
+                if self.twr_update_i == 0:
+                    last_twr_time = rospy.Time.now().secs
+                    self.twr_update_i = self.id-1
+                else:
+                    self.twr_update_i-=1
+                    last_twr_time += 1
+                
                 
             retcode,jsonblob = self.readline(1)
             if retcode == -10:
-                rospy.loginfo("timeout")
                 self.s.write(b'?\r')
                 continue;
             if retcode != 0: continue        # Ignore timeout or error
@@ -286,12 +298,17 @@ class TdoaSerialAnchor:
             
             if packet_type == 0x20 and source_address == 0x0000:
                 self.updateClockRef(d)
-                continue            
+                msg = LPSWirelessSyncStatus()
+                msg.header.stamp=rospy.Time.now()
+                msg.listener_id = self.id
+                msg.prediction_error = self.lc.getErrorEstimate()[1]
+                wireless_clock_stat_pub.publish(msg)
             if packet_type == 0x30 and len(d['d']) > 93:
                 msg = self.extractImuData(source_address,d['d'])
                 imu_pub.publish(msg)
                 msg = self.extractPressure(source_address,d['d'])
-                pressure_pub.publish(msg)
+                if msg.fluid_pressure > 0:
+                    pressure_pub.publish(msg)
                 msg = self.extractTemperature(source_address,d['d'])
                 temp_pub.publish(msg)
             
@@ -311,6 +328,7 @@ class TdoaSerialAnchor:
                     rospy.loginfo("TOF Offset updated: 0x%X (%.0fmm)", tof, tof_mm)
             except KeyError:
                 tof = 0
+                tof_mm = 0
                 
             # Publish message as is
             msg = LPSSyncedJson()
@@ -322,13 +340,30 @@ class TdoaSerialAnchor:
             msg.ts = ts
             msg.ts_adj = int(ts_adj)
             msg.rssi = rssi
-            msg.twr = tof*1.0/499.2e6/128.0*299702547.0
+            msg.twr = tof_mm
             msg.data = str(d['d'])
+            
             try:
-                pub.publish(msg)
+                if packet_type == 0x20 and source_address == 0x0000:
+                    wireless_clock_pub.publish(msg)
+                else:
+                    pub.publish(msg)
             except rospy.exceptions.ROSSerializationException:
                 print(msg)
+
+            if tof_mm > 0:
+                twrmsg = LPSRange()
+                twrmsg.header.stamp=rospy.Time.now()
+                twrmsg.tag_id = dest_address
+                twrmsg.anchor_id = source_address
+                twrmsg.dist_mm = tof_mm
+                twrmsg.power = rssi
                 
+                try:
+                    twr_pub.publish(twrmsg)
+                except rospy.exceptions.ROSSerializationException:
+                    print(twrmsg)
+    
 
 if __name__ == '__main__':
     try:
