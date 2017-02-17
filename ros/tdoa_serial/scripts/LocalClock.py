@@ -20,11 +20,12 @@ class LocalClock:
         self.missed_update = 0
         self.x_pred_err=[]
         self.x_v = []
+        self.last_esquare = 0
         
     def getErrorEstimate(self):
         if len(self.x_pred_err) < 1: return (0,0)
         if len(self.x_v) < 1: return (0,self.x_pred_err[-1])
-        return (self.x_v[-1],self.x_pred_err[-1])
+        return (self.x_pred_err[-1], self.last_esquare)
 
     def getErrorEstimates(self):
         return self.x_pred_err
@@ -32,6 +33,9 @@ class LocalClock:
     def clearErrorEstimates(self):
         self.x_pred_err = []
         self.x_v = []
+
+    def getClockskew(self):
+        return self.x[1,0]-1.0
 
     def addDataPt(self, master_clock, local_clock):
         self.m.append(master_clock)
@@ -44,7 +48,9 @@ class LocalClock:
         # Predict master ts for this local_ts
         if self.have_init == False: return 0;
         pred_x = self.predict(local_ts)
-        return int(pred_x[0,0]) + self.tof_offset
+        mts = int(pred_x[0,0]) + self.tof_offset
+        if (mts<0): mts += 0xFFFFFFFFFF
+        return mts
 
     def predict(self, local_ts):
         if len(self.l) < 1: return -1
@@ -52,7 +58,7 @@ class LocalClock:
         if (dt<0): dt+=0xFFFFFFFFFF;
         F = np.eye(2)
         F[0,1] = dt
-        pred_x = np.mat(F) * np.mat(self.x);
+        pred_x = np.mat(F) * np.mat(self.x)
         return pred_x
     
     def update(self):
@@ -89,11 +95,13 @@ class LocalClock:
         if (lts1<lts0): lts1+=0xFFFFFFFFFF;
             
         dt = lts1-lts0
+        F[0,1] = dt
         #rospy.loginfo("t@ %f dt: %f (mdt: %f)",lts0,dt,mts1-mts0);
         #rospy.loginfo("lts0: %f lts1: %f",lts0,lts1);
         #rospy.loginfo("mts0: %f mts1: %f",mts0,mts1);
-        F[0,1] = dt
-        if self.have_init == False or self.missed_update>5:
+        
+        # (Re)initialise
+        if self.have_init == False or self.missed_update>5 or dt>65535*1000000:
             self.have_init = True
             self.x[0,0] = mts1
             self.x[1,0] = (mts1-mts0)/dt
@@ -126,7 +134,8 @@ class LocalClock:
         
         Sinv = 1.0/S[0,0];
         esquare = np.mat(y.transpose())*np.mat(Sinv)*np.mat(y);
-
+        self.last_esquare = esquare
+        
         # Gate, difficult to tune...
         K = np.mat(pred_P)* np.mat(H.transpose())*np.mat(Sinv)
         #print esquare

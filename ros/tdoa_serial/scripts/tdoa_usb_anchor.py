@@ -202,7 +202,7 @@ class TdoaSerialAnchor:
 
         
     def run(self):
-        rospy.init_node('tdoaserialanchor', anonymous=True, log_level=rospy.INFO)
+        rospy.init_node('tdoaserialanchor', anonymous=True, log_level=rospy.DEBUG)
         pub = rospy.Publisher('synced_uwb_json', LPSSyncedJson, queue_size=100)
         twr_pub = rospy.Publisher('twr', LPSRange, queue_size=100)
         wireless_clock_pub = rospy.Publisher('wireless_sync', LPSSyncedJson, queue_size=100)
@@ -218,24 +218,27 @@ class TdoaSerialAnchor:
         okinit = self.init_device()
         if (okinit == False): exit(0);
 
+        wireless_clock_beacon_interval = 0
         twr_update_interval = rospy.get_param('~twr_update_interval',30)
         twr_update_mode = rospy.get_param('~twr_update_mode','all_lower')
         
         # Once opened ok enter an eternal loop
-        clock_sync_initiated = False
         last_twr_time = 0
         while not rospy.is_shutdown():
             # We don't know who's on the other end yet?
             if self.id < 0 : self.s.write(b'?\r')
-            if clock_sync_initiated==False and self.id==0:
-                rospy.loginfo("Initiating clock sync on anchor 0")
-                clock_sync_initiated = True
-                self.s.write(b'm0064\r')
+
+            # Check for clock sync interval changes
+            if self.id==0:
+                new_interval = rospy.get_param('wireless_clock_beacon_interval',0x64)
+                if wireless_clock_beacon_interval != new_interval:
+                    wireless_clock_beacon_interval = new_interval
+                    rospy.loginfo("Initiating clock sync on anchor 0 to 0x%X", wireless_clock_beacon_interval)
+                    self.s.write(b'm' + "{0:0>4}".format(wireless_clock_beacon_interval,'X') + '\r')
 
             # If we don't have an estimation of our tof offset
             # order a twr with master
-            rospy.loginfo("### now=%d last=%d diff=%d",rospy.Time.now().secs,last_twr_time,rospy.Time.now().secs - last_twr_time)
-            if self.id > 0 and self.lc.tof_offset==0 and rospy.Time.now().secs - last_twr_time > 2:
+            if self.id > 0 and self.lc.tof_offset==0 and rospy.Time.now().secs - last_twr_time > 1:
                 rospy.loginfo("Order TWR with master - initial")
                 self.s.write(b't0000\r')
                 self.twr_update_i = self.id-1
@@ -254,11 +257,11 @@ class TdoaSerialAnchor:
                 
             retcode,jsonblob = self.readline(1)
             if retcode == -10:
+                rospy.loginfo("SerialTimeout")
                 self.s.write(b'?\r')
                 continue;
             if retcode != 0: continue        # Ignore timeout or error
             if len(jsonblob) == 0: continue  # Ignore empty packet
-            rospy.loginfo("packet: '%s'", jsonblob)
 
             if jsonblob[0] == "#": continue  # Ignore debug / human readable output
 
@@ -270,19 +273,20 @@ class TdoaSerialAnchor:
             
             # Do we know our own id?
             if self.id < 0:
+                print(d)
                 try:
                     if d['id'] > -1:
                         self.id = int(d['id'],16)
                         self.lc.id = self.id
                         rospy.loginfo("My id: %d", self.id)
-                except AttributeError:
+                except (AttributeError, TypeError):
                     print(d)
 
             try:
                 ts = int(d['ts'],16)
                 rssi = int(d['rssi'],10)
                 if len(d['d']) > 1024: continue;
-            except KeyError:
+            except (KeyError,TypeError):
                 print(d)
                 continue
             
@@ -301,7 +305,9 @@ class TdoaSerialAnchor:
                 msg = LPSWirelessSyncStatus()
                 msg.header.stamp=rospy.Time.now()
                 msg.listener_id = self.id
-                msg.prediction_error = self.lc.getErrorEstimate()[1]
+                (msg.prediction_error,msg.esquare) = self.lc.getErrorEstimate()
+                msg.abs_prediction_error = abs(msg.prediction_error)
+                msg.clockskew = self.lc.getClockskew()
                 wireless_clock_stat_pub.publish(msg)
             if packet_type == 0x30 and len(d['d']) > 93:
                 msg = self.extractImuData(source_address,d['d'])
@@ -320,6 +326,7 @@ class TdoaSerialAnchor:
             try:
                 tof = int(d['tof'],16)
                 tof_mm = int(d['tof_mm'],10)
+                rospy.loginfo("TOF Offset: 0x%X <-> 0x%X 0x%X (%.0fmm)", source_address, dest_address, tof, tof_mm)
                 if source_address == 0x0000 and dest_address == self.id and tof_mm < 300000:
                     self.lc.tof_offset = tof/1000.0
                     rospy.loginfo("TOF Offset updated: 0x%X (%.0fmm)", tof, tof_mm)
@@ -347,7 +354,8 @@ class TdoaSerialAnchor:
                 if packet_type == 0x20 and source_address == 0x0000:
                     wireless_clock_pub.publish(msg)
                 else:
-                    pub.publish(msg)
+                    if tof_mm == 0:
+                        pub.publish(msg)
             except rospy.exceptions.ROSSerializationException:
                 print(msg)
 
