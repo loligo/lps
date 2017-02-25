@@ -26,6 +26,8 @@ class TdoaSerialAnchor:
         self.s = 0
         self.id = -1
         self.lc = LocalClock.LocalClock(self.id)
+        self.antenna_delay = 0x4000
+        self.set_new_antenna_delay = False
 
     def init_device(self):
         # Try to open the given device name
@@ -52,19 +54,83 @@ class TdoaSerialAnchor:
     # - top 16 bits is our address if it matches,
     # - lower 16 bits is the new antenna delay
     def callback_setAntennaDelay(self, d):
-        if (((d.data & 0xffff0000) >> 16) != self.id): return;
-        self.slave_antenna_delay = d.data
-        s=b'a'+struct.pack('>H',self.slave_antenna_delay).encode('hex').upper()
-        rospy.loginfo(b'Sending new antenna delay: ' + s)
-        self.s.write(s + b'\r');
-        rospy.loginfo(rospy.get_caller_id() + " New antenna delay %d", self.slave_antenna_delay)
+        if (((d.data & 0xffff0000) >> 16) != self.id and ((d.data & 0xffff0000) >> 16) != 0xffff): return;
+        self.antenna_delay = d.data & 0xFFFF
+        self.set_new_antenna_delay = True
 
+    def setAndVerifyNewAntennaDelay(self):
+        s=b'a'+struct.pack('>H',self.antenna_delay).encode('hex').upper()
+        while (self.set_new_antenna_delay):
+            rospy.loginfo(b'%d Sending new antenna delay: %s', self.id, s)
+            self.s.write(s + b'\r');
+            rospy.sleep(0.05)
+            self.s.write(b'?\r');
+
+            for i in range(0,5):
+                retcode,jsonblob = self.readline(1)
+                if retcode == -10:
+                    rospy.loginfo("SerialTimeout")
+                    continue;
+                if retcode != 0: continue        # Ignore timeout or error
+                if len(jsonblob) == 0: continue  # Ignore empty packet
+                
+                if jsonblob[0] == "#":
+                    #rospy.logdebug("%.2d '%s'", self.id, jsonblob)
+                    continue  # Ignore debug / human readable output
+                
+                # Verify that this is interpretable json
+                try:
+                    d = json.loads(jsonblob)
+                except ValueError:
+                    continue
+                
+                try:
+                    rospy.logdebug("%d Checking new antenna delay: %s", self.id, d['antdly'])
+                    if int(d['antdly'],16) == self.antenna_delay:
+                        self.set_new_antenna_delay = False
+                        rospy.loginfo("%d Verified new antenna delay: 0x%x", self.id, self.antenna_delay)
+                        break
+                except (KeyError):
+                    print('KeyError',d)
+                    continue
+                except (AttributeError):
+                    print('Attribute',d)
+                    continue
+                except (TypeError):
+                    print(self.id, 'TypeError',d)
+                    continue
+        
+
+        permanent_write = rospy.get_param('~anchor_store_eeprom',False)
+        if permanent_write:
+            rospy.sleep(0.05)
+            self.s.write(b'w\r');
+        rospy.loginfo(rospy.get_caller_id() + " New antenna delay %d", self.antenna_delay)
+
+        
+
+    # Sets the txpower delay, takes 32bit word
+    # - top 16 bits is our address if it matches,
+    # - lower 8 bits is the new txpower
+    def callback_setTxPower(self, d):
+        if (((d.data & 0xffff0000) >> 16) != self.id and ((d.data & 0xffff0000) >> 16) != 0xffff): return;
+        self.tx_power = d.data & 0xFF
+        s=b'p'+struct.pack('>H',self.tx_power).encode('hex').upper()
+        rospy.loginfo(b'Sending new txpower setting: ' + s)
+        self.s.write(s + b'\r');
+
+        permanent_write = rospy.get_param('~anchor_store_eeprom',False)
+        if permanent_write:
+            rospy.sleep(0.05)
+            self.s.write(b'w\r');
+            
+        rospy.loginfo(rospy.get_caller_id() + " New tx power 0x%x", self.tx_power)
         
     # Initiate TWR, takes 32bit word
     # - top 16 bits is from address,
     # - lower 16 bits is destination address
     def callback_starttwrwith(self, d):
-        if (((d.data & 0xffff0000) >> 16) != self.id): return;
+        if (((d.data & 0xffff0000) >> 16) != self.id and ((d.data & 0xffff0000) >> 16) != 0xffff): return;
         s=b't'+struct.pack('>H', (d.data&0xffff)).encode('hex').upper()
         self.s.write(s + b'\r');
         rospy.loginfo("Init TWR ranging: 0x%X -> 0x%X", ((d.data & 0xffff0000) >> 16), (d.data & 0xffff))
@@ -211,8 +277,9 @@ class TdoaSerialAnchor:
         temp_pub = rospy.Publisher('/imu/temperature', Temperature, queue_size=10)
         pressure_pub = rospy.Publisher('/imu/pressure', FluidPressure, queue_size=10)
         rospy.Subscriber("antenna_dly", UInt32, self.callback_setAntennaDelay)
+        rospy.Subscriber("tx_power", UInt32, self.callback_setTxPower)
         rospy.Subscriber("start_twr_between", UInt32, self.callback_starttwrwith)
-
+    
         # Open our serial port
         self.s_devname = rospy.get_param('~serial_device','/dev/ttyUSB2')
         okinit = self.init_device()
@@ -254,7 +321,9 @@ class TdoaSerialAnchor:
                     self.twr_update_i-=1
                     last_twr_time += 1
                 
-                
+            if (self.set_new_antenna_delay):
+                self.setAndVerifyNewAntennaDelay()
+                    
             retcode,jsonblob = self.readline(1)
             if retcode == -10:
                 rospy.loginfo("SerialTimeout")
@@ -263,7 +332,9 @@ class TdoaSerialAnchor:
             if retcode != 0: continue        # Ignore timeout or error
             if len(jsonblob) == 0: continue  # Ignore empty packet
 
-            if jsonblob[0] == "#": continue  # Ignore debug / human readable output
+            if jsonblob[0] == "#":
+                rospy.logdebug("%.2d '%s'", self.id, jsonblob)
+                continue  # Ignore debug / human readable output
 
             # Verify that this is interpretable json
             try:
@@ -322,7 +393,7 @@ class TdoaSerialAnchor:
 
                 
             # Check for twr messages that can give us tof to master
-            # to futher adjust our timings
+            # to further adjust our timings
             try:
                 tof = int(d['tof'],16)
                 tof_mm = int(d['tof_mm'],10)
