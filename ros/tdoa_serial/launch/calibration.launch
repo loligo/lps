@@ -1,0 +1,42 @@
+<launch>
+  <param name="wireless_clock_beacon_interval" type="int" value="0" />
+  <param name="anchor_store_eeprom" type="bool" value="True" />
+  <param name="number_of_anchors_to_calibrate" type="int" value="4" />
+  <param name="calibration_twr_runs" type="int" value="50" />
+  
+  <group>
+
+    <!--  You'll need to update these to match the locations of your anchors. Anchor0 has to be in origo -->
+    <!--  Note that the anchors should be on a single line on the x-axis with strictly increasing x value with increasing id -->
+    <node pkg="tf" type="static_transform_publisher" name="anchor0_broadcaster" args="0 0 0 0 0 0 1 map anchor0 100" />
+    <node pkg="tf" type="static_transform_publisher" name="anchor1_broadcaster" args="1.686 0 0 0 0 0 1 map anchor1 100" />
+    <node pkg="tf" type="static_transform_publisher" name="anchor2_broadcaster" args="3.117 0 0 0 0 0 1 map anchor2 100" />
+    <node pkg="tf" type="static_transform_publisher" name="anchor3_broadcaster" args="5.337 0 0 0 0 0 1 map anchor3 100" />
+
+    <remap from="/wireless_sync_stat" to="/wireless_sync_stat00"/>
+    <node pkg="lps_tdoa_serial" type="tdoa_usb_anchor.py" name="tdoaserial_00" respawn="true" respawn_delay="10" output="log">
+      <param name="serial_device" type="string" value="/dev/ttyUSB.tdoa_anchor00" />
+    </node>
+
+    <remap from="/wireless_sync_stat" to="/wireless_sync_stat01"/>
+    <node pkg="lps_tdoa_serial" type="tdoa_usb_anchor.py" name="tdoaserial_01" respawn="true" respawn_delay="10" output="log">
+      <param name="serial_device" type="string" value="/dev/ttyUSB.tdoa_anchor01" />
+    </node>
+
+    <remap from="/wireless_sync_stat" to="/wireless_sync_stat02"/>
+    <node pkg="lps_tdoa_serial" type="tdoa_usb_anchor.py" name="tdoaserial_02" respawn="true" respawn_delay="10" output="log">
+      <param name="serial_device" type="string" value="/dev/ttyUSB.tdoa_anchor02" />
+    </node>
+
+    <remap from="/wireless_sync_stat" to="/wireless_sync_stat03"/>
+    <node pkg="lps_tdoa_serial" type="tdoa_usb_anchor.py" name="tdoaserial_03" respawn="true" respawn_delay="10" output="log">
+      <param name="serial_device" type="string" value="/dev/ttyUSB.tdoa_anchor03" />
+    </node>
+
+    <node pkg="lps_tdoa_serial" type="linear_delay_autocalibrate.py" name="calibrator" respawn="false" output="screen">
+    </node>
+    
+  </group>
+  
+
+</launch>
