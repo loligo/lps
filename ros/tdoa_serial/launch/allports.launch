@@ -2,16 +2,11 @@
   <arg name="record_uwb_data" default="true" />
   <param name="wireless_clock_beacon_interval" type="int" value="100" />
   <group>
-<!--
-    <node pkg="tf" type="static_transform_publisher" name="link4_broadcaster" args="2 0 0 0 0 0 1 map imu1004 100" />
-    <node pkg="tf" type="static_transform_publisher" name="link5_broadcaster" args="0 2 0 0 0 0 1 map imu1005 100" />
-    -->
-
-    <!--  You'll need to update these to match the locations of your anchors. Anchor0 has to be in origo -->
-    <node pkg="tf" type="static_transform_publisher" name="anchor0_broadcaster" args="0 0 0 0 0 0 1 map anchor0 100" />
-    <node pkg="tf" type="static_transform_publisher" name="anchor1_broadcaster" args="5.03 0.00 0 0 0 0 1 map anchor1 100" />
-    <node pkg="tf" type="static_transform_publisher" name="anchor2_broadcaster" args="0.00 2.81 0 0 0 0 1 map anchor2 100" />
-    <node pkg="tf" type="static_transform_publisher" name="anchor3_broadcaster" args="3.90 2.81 0 0 0 0 1 map anchor3 100" />
+    <!--  You'll need to update these to match the locations of your anchors. -->
+    <node pkg="tf" type="static_transform_publisher" name="anchor0_broadcaster" args="0.000 0.000 0 0 0 0 1 map anchor0 100" />
+    <node pkg="tf" type="static_transform_publisher" name="anchor1_broadcaster" args="0.007 4.812 0 0 0 0 1 map anchor1 100" />
+    <node pkg="tf" type="static_transform_publisher" name="anchor2_broadcaster" args="4.803 4.181 0 0 0 0 1 map anchor2 100" />
+    <node pkg="tf" type="static_transform_publisher" name="anchor3_broadcaster" args="4.234 0.744 0 0 0 0 1 map anchor3 100" />
 
     <remap from="/wireless_sync_stat" to="/wireless_sync_stat00"/>
     <node pkg="lps_tdoa_serial" type="tdoa_usb_anchor.py" name="tdoaserial_00" respawn="true" respawn_delay="10" output="log">

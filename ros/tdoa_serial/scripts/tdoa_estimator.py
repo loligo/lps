@@ -27,58 +27,85 @@ class TdoaEstimator:
         self.current_seq_id = -1;
         self.tf_listener = 0
         self.tf_broadcaster = 0
-        
-    def process_vector(self, v):
-        print("#-----------------#")
-        t0=-1
-        for i in v:
-            if i.listener_id==0: t0=i.ts_adj
-        if t0 < 0: return
-        rospy.loginfo("  t0: %d", t0)
 
-        Amatrix = np.zeros((len(v),3))
-        Bmatrix = np.zeros((len(v),1))
+    def tsdiff(self,a,b):
+        d=a-b
+        if d> 0xFF00000000: d-=0xFFFFFFFFFF
+        if d<-0xFF00000000: d+=0xFFFFFFFFFF
+        if d> 0xFF000000:   d-=0xFFFFFFFF
+        if d<-0xFF000000:   d+=0xFFFFFFFF
+        return d
+        
+
+    def process_vector(self, v):
+        if len(v) < 4: return
+        v.sort(lambda x,y: x.listener_id-y.listener_id)
+
+        c = scipy.constants.c
+        
+        # The first anchor in the list becomes a0
+        a0=v[0]
+        ts0=a0.ts_adj
+        t0=ts0/(499.2e6*128.0)
+        try:
+            (trans,rot) = self.tf_listener.lookupTransform('/map', '/anchor' + str(a0.listener_id), v[0].header.stamp)
+            a0_trans=np.array(trans)
+            rospy.logdebug("%d[%x]: d=%.3f",a0.listener_id,a0.source_addr,0)
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            return
+
+        # The second anchor in the list becomes a1
+        a1=v[1]
+        ts1=self.tsdiff(a1.ts_adj,ts0)
+        t1=ts1/(499.2e6*128.0)
+        try:
+            (trans,rot) = self.tf_listener.lookupTransform('/map', '/anchor' + str(a1.listener_id), v[1].header.stamp)
+            a1_trans=np.array(trans)-a0_trans
+            rospy.logdebug("%d[%x]: d=%.3f",a1.listener_id,a1.source_addr,t1*c)
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            return
+
+        # Remaining anchors form the equations
+        Amatrix = np.zeros((len(v)-2,3))
+        Bmatrix = np.zeros((len(v)-2,1))
         r=0
-        for i in v:
+        for i in range(2,len(v)):
             try:
-                (trans,rot) = self.tf_listener.lookupTransform('/map', '/anchor' + str(i.listener_id), i.header.stamp)
-                #print(trans)
+                (trans,rot) = self.tf_listener.lookupTransform('/map', '/anchor' + str(v[i].listener_id), v[i].header.stamp)
+                trans=np.array(trans)-a0_trans
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                 continue
-            ts = i.ts_adj-t0
-            t = (i.ts_adj-t0)/(499.2e6*128.0)
-            c = scipy.constants.c
-            d = 0
-            if i.ts_adj == t0:
-                A=0
-                B=0
-                C=0
-                D=0
-            else:
-                d = c*t
-                divisor = 1.0/(c*t)
-                A=2*trans[0]*divisor
-                B=2*trans[1]*divisor
-                C=2*trans[2]*divisor
-                D=t*c-(trans[0]*trans[0]+trans[1]*trans[1]+trans[2]*trans[2])*divisor
-            print(i.listener_id,i.source_addr,i.seq_id,ts,d)
+            ts = self.tsdiff(v[i].ts_adj,ts0)
+            if ts==0: ts=1
+            t = ts/(499.2e6*128.0)
+            d = c*t
+            divisor = 1.0/(c*t)
+            A=2*trans[0]*divisor - 2*a1_trans[0]/(t1*c)
+            B=2*trans[1]*divisor - 2*a1_trans[1]/(t1*c)
+            C=2*trans[2]*divisor - 2*a1_trans[2]/(t1*c)
+            D=c*t - t1*c - (trans[0]*trans[0]+trans[1]*trans[1]+trans[2]*trans[2])*divisor + (a1_trans[0]*a1_trans[0]+a1_trans[1]*a1_trans[1]+a1_trans[2]*a1_trans[2])/(t1*c)
+
+            rospy.logdebug("%d[%x]: d=%.3f",v[i].listener_id,v[i].source_addr,t*c)
             Amatrix[r,0] = A;
             Amatrix[r,1] = B;
             Amatrix[r,2] = C;
             Bmatrix[r,0] = -D;
             r+=1
-        #print (Amatrix,Bmatrix)
-        x = np.linalg.lstsq(Amatrix, Bmatrix)[0]
-        print (x)
+        (x,residuals,rank,s) = np.linalg.lstsq(Amatrix, Bmatrix)
+        x=np.transpose(x[:,0])+a0_trans
+        if rank < 2: return
+        rospy.loginfo("x[%x]=(%.3f,%.3f,%.3f)",a0.source_addr,x[0], x[1], x[2])
         self.tf_broadcaster.sendTransform((x[0], x[1], x[2]),
                      tf.transformations.quaternion_from_euler(0, 0, 0),
                      rospy.Time.now(),
-                     'imu' + format(i.source_addr,'x'),
+                     'imu' + format(v[i].source_addr,'x'),
                      "map")
         
                 
             
     def callback_lpssyncedjson(self, d):
+        #Todo: Handle multiple tags
+        if d.source_addr < 0x1000: return
         if d.seq_id != self.current_seq_id:
             self.current_seq_id = d.seq_id
             self.last_complete_vector = self.current_vector
@@ -88,7 +115,7 @@ class TdoaEstimator:
         
         
     def run(self):
-        rospy.init_node('tdoaserialanchor', anonymous=True, log_level=rospy.INFO)
+        rospy.init_node('tdoaserialanchor', anonymous=True, log_level=rospy.DEBUG)
         pub = rospy.Publisher('synced_uwb_json', LPSSyncedJson, queue_size=100)
         pressure_pub = rospy.Publisher('/imu/pressure', FluidPressure, queue_size=10)
         rospy.Subscriber("synced_uwb_json", LPSSyncedJson, self.callback_lpssyncedjson)
