@@ -269,10 +269,10 @@ class TdoaSerialAnchor:
         
     def run(self):
         rospy.init_node('tdoaserialanchor', anonymous=True, log_level=rospy.DEBUG)
-        pub = rospy.Publisher('synced_uwb_json', LPSSyncedJson, queue_size=100)
-        twr_pub = rospy.Publisher('twr', LPSRange, queue_size=100)
-        wireless_clock_pub = rospy.Publisher('wireless_sync', LPSSyncedJson, queue_size=100)
-        wireless_clock_stat_pub = rospy.Publisher('wireless_sync_stat', LPSWirelessSyncStatus, queue_size=100)
+        pub = rospy.Publisher('synced_uwb_json', LPSSyncedJson, queue_size=10)
+        twr_pub = rospy.Publisher('twr', LPSRange, queue_size=10)
+        wireless_clock_pub = rospy.Publisher('wireless_sync', LPSSyncedJson, queue_size=10)
+        wireless_clock_stat_pub = rospy.Publisher('wireless_sync_stat', LPSWirelessSyncStatus, queue_size=10)
         imu_pub = rospy.Publisher('/imu/data', Imu, queue_size=10)
         temp_pub = rospy.Publisher('/imu/temperature', Temperature, queue_size=10)
         pressure_pub = rospy.Publisher('/imu/pressure', FluidPressure, queue_size=10)
@@ -390,10 +390,13 @@ class TdoaSerialAnchor:
                 temp_pub.publish(msg)
             
             ts_adj=self.lc.masterat(ts)
-
+            # TODO: FIX ts problem here instead!!!
+            if ts_adj < 0: continue
                 
             # Check for twr messages that can give us tof to master
             # to further adjust our timings
+            tof = 0
+            tof_mm = 0
             try:
                 tof = int(d['tof'],16)
                 tof_mm = int(d['tof_mm'],10)
