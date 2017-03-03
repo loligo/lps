@@ -4,6 +4,7 @@ import json
 import time
 import struct
 import serial
+import math
 import numpy as np
 import scipy
 from scipy import optimize
@@ -50,12 +51,14 @@ class TdoaEstimator:
         try:
             (trans,rot) = self.tf_listener.lookupTransform('/map', '/anchor' + str(a0.listener_id), v[0].header.stamp)
             a0_trans=np.array(trans)
-            rospy.logdebug("%d[%x]: d=%.3f",a0.listener_id,a0.source_addr,0)
+            rospy.logdebug("%d[%x]: sq=%3d d=%.3f len=%d",a0.listener_id,a0.source_addr,a0.seq_id,0,len(v))
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             return
 
         # The second anchor in the list becomes a1
         a1=v[1]
+        if (a1.ts_adj==0): return;
+        
         ts1=self.tsdiff(a1.ts_adj,ts0)
         t1=ts1/(499.2e6*128.0)
         try:
@@ -95,6 +98,7 @@ class TdoaEstimator:
         x=np.transpose(x[:,0])+a0_trans
         if rank < 2: return
         rospy.loginfo("x[%x]=(%.3f,%.3f,%.3f)",a0.source_addr,x[0], x[1], x[2])
+        if math.isnan(x[0]) or math.isnan(x[1]): return
         self.tf_broadcaster.sendTransform((x[0], x[1], x[2]),
                      tf.transformations.quaternion_from_euler(0, 0, 0),
                      rospy.Time.now(),
