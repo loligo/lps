@@ -2,6 +2,7 @@
 import json
 import rospy
 import time
+import math
 import numpy as np
 
 class LocalClock:
@@ -48,6 +49,8 @@ class LocalClock:
         # Predict master ts for this local_ts
         if self.have_init == False: return 0;
         pred_x = self.predict(local_ts)
+        if math.isnan(pred_x[0,0]): return 0.0;
+        
         mts = int(pred_x[0,0]) + self.tof_offset
         if (mts<0): mts += 0xFFFFFFFFFF
         return mts
@@ -96,9 +99,9 @@ class LocalClock:
             
         dt = lts1-lts0
         F[0,1] = dt
-        #rospy.loginfo("t@ %f dt: %f (mdt: %f)",lts0,dt,mts1-mts0);
-        #rospy.loginfo("lts0: %f lts1: %f",lts0,lts1);
-        #rospy.loginfo("mts0: %f mts1: %f",mts0,mts1);
+        #rospy.logdebug("t@ %f dt: %f (mdt: %f)",lts0,dt,mts1-mts0);
+        #rospy.logdebug("lts0: %f lts1: %f",lts0,lts1);
+        #rospy.logdebug("mts0: %f mts1: %f",mts0,mts1);
         
         # (Re)initialise
         if self.have_init == False or self.missed_update>5 or dt>65535*1000000:
@@ -108,7 +111,7 @@ class LocalClock:
             self.P = np.zeros((2,2))
             self.P[0,0] = R
             self.P[1,1] = 1e-4
-            rospy.loginfo("Initial x=[%f,%e]",self.x[0,0], self.x[1,0]-1.0);
+            rospy.loginfo("Initial x=[%f,%e] abs=[%d,%d] d=[%d,%d]",self.x[0,0], self.x[1,0]-1.0, mts1, lts1, mts1-mts0, dt);
             self.missed_update=0
             return
 
