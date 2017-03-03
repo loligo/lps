@@ -5,6 +5,7 @@ uint16 source_addr
 uint16 dest_addr
 uint64 ts
 uint64 ts_adj
+uint8 packet_type
 float32 rssi
 float32 twr
 string data
