@@ -23,11 +23,13 @@ class TdoaSerialAnchor:
 
     def __init__(self):
         self.s_devname = '/dev/ttyUSB0'
+        self.s_baudrate = 115200
         self.s = 0
         self.id = -1
         self.lc = LocalClock.LocalClock(self.id)
         self.antenna_delay = 0x4000
         self.set_new_antenna_delay = False
+        self.set_new_double_buffer_mode = True
 
     def init_device(self):
         # Try to open the given device name
@@ -44,8 +46,8 @@ class TdoaSerialAnchor:
         self.s.setDTR(True)
 
         # Reopen serial
-        self.s = serial.Serial(self.s_devname,baudrate=115200,timeout=1)
-        rospy.loginfo('Serial port opened:' + self.s.name)
+        self.s = serial.Serial(self.s_devname,baudrate=self.s_baudrate,timeout=1)
+        rospy.loginfo('Serial port opened: %s @ %dbps', self.s.name, self.s_baudrate)
         self.s.flush()
         return True
         
@@ -99,13 +101,60 @@ class TdoaSerialAnchor:
                 except (TypeError):
                     print(self.id, 'TypeError',d)
                     continue
-        
+
+    def setAndVerifyDoubleBuffer(self, value):
+        s=b'd'
+        if value: s+='1'
+        else:     s+='0'
+        while (self.set_new_double_buffer_mode):
+            rospy.loginfo(b'%d Changing double buffer to: %d', self.id, value)
+            self.s.write(s + b'\r');
+            rospy.sleep(0.05)
+            self.s.write(b'?\r');
+
+            for i in range(0,5):
+                retcode,jsonblob = self.readline(1)
+                if retcode == -10:
+                    rospy.loginfo("SerialTimeout")
+                    continue;
+                if retcode != 0: continue        # Ignore timeout or error
+                if len(jsonblob) == 0: continue  # Ignore empty packet
+                
+                if jsonblob[0] == "#":
+                    #rospy.logdebug("%.2d '%s'", self.id, jsonblob)
+                    continue  # Ignore debug / human readable output
+                
+                # Verify that this is interpretable json
+                try:
+                    d = json.loads(jsonblob)
+                except ValueError:
+                    continue
+                
+                try:
+                    rospy.logdebug("%d Checking double buffer: %s", self.id, d['dblbuf'])
+                    if d['dblbuf'] == '1' and value:
+                        rospy.loginfo("%d Successfully enabled double buffer", self.id)
+                        self.set_new_double_buffer_mode = False
+                        break
+                    if d['dblbuf'] == '0' and value==False:
+                        rospy.loginfo("%d Successfully disabled double buffer", self.id)
+                        self.set_new_double_buffer_mode = False
+                        break
+                except (KeyError):
+                    print('KeyError',d)
+                    continue
+                except (AttributeError):
+                    print('Attribute',d)
+                    continue
+                except (TypeError):
+                    print(self.id, 'TypeError',d)
+                    continue
+                
 
         permanent_write = rospy.get_param('~anchor_store_eeprom',False)
         if permanent_write:
             rospy.sleep(0.05)
             self.s.write(b'w\r');
-        rospy.loginfo(rospy.get_caller_id() + " New antenna delay %d", self.antenna_delay)
 
         
 
@@ -282,12 +331,14 @@ class TdoaSerialAnchor:
     
         # Open our serial port
         self.s_devname = rospy.get_param('~serial_device','/dev/ttyUSB2')
+        self.s_baudrate= rospy.get_param('~baud_rate',2000000)
         okinit = self.init_device()
         if (okinit == False): exit(0);
 
         wireless_clock_beacon_interval = 0
         twr_update_interval = rospy.get_param('~twr_update_interval',30)
         twr_update_mode = rospy.get_param('~twr_update_mode','all_lower')
+        
         
         # Once opened ok enter an eternal loop
         last_twr_time = 0
@@ -302,7 +353,7 @@ class TdoaSerialAnchor:
                     wireless_clock_beacon_interval = new_interval
                     rospy.loginfo("Initiating clock sync on anchor 0 to 0x%X", wireless_clock_beacon_interval)
                     self.s.write(b'm' + "{0:0>4}".format(wireless_clock_beacon_interval,'X') + '\r')
-
+                    
             # If we don't have an estimation of our tof offset
             # order a twr with master
             if self.id > 0 and self.lc.tof_offset==0 and rospy.Time.now().secs - last_twr_time > 1:
@@ -321,9 +372,12 @@ class TdoaSerialAnchor:
                     self.twr_update_i-=1
                     last_twr_time += 1
                 
-            if (self.set_new_antenna_delay):
+            if (self.id > 0 and self.set_new_antenna_delay):
                 self.setAndVerifyNewAntennaDelay()
-                    
+
+            if (self.id > -1 and self.set_new_double_buffer_mode):
+                self.setAndVerifyDoubleBuffer(rospy.get_param('~use_double_buffer',True))
+
             retcode,jsonblob = self.readline(1)
             if retcode == -10:
                 rospy.loginfo("SerialTimeout")
@@ -357,7 +411,7 @@ class TdoaSerialAnchor:
                 ts = int(d['ts'],16)
                 rssi = int(d['rssi'],10)
                 if len(d['d']) > 1024: continue;
-            except (KeyError,TypeError):
+            except (KeyError,TypeError,ValueError):
                 print(d)
                 continue
             
@@ -370,8 +424,9 @@ class TdoaSerialAnchor:
             seq_id = self.extract_seq_id(d['d'])
             source_address = self.extract_source_address(d['d'])
             dest_address   = self.extract_dest_address(d['d'])
-            
-            if packet_type == 0x20 and source_address == 0x0000:
+
+            # Wireless sync packages
+            if (packet_type&0xF0 == 0x20) and source_address == 0x0000:
                 self.updateClockRef(d)
                 msg = LPSWirelessSyncStatus()
                 msg.header.stamp=rospy.Time.now()
@@ -380,6 +435,8 @@ class TdoaSerialAnchor:
                 msg.abs_prediction_error = abs(msg.prediction_error)
                 msg.clockskew = self.lc.getClockskew()
                 wireless_clock_stat_pub.publish(msg)
+                
+            # Tag message including IMU data    
             if packet_type == 0x30 and len(d['d']) > 93:
                 msg = self.extractImuData(source_address,d['d'])
                 imu_pub.publish(msg)
@@ -418,6 +475,7 @@ class TdoaSerialAnchor:
             msg.seq_id = seq_id
             msg.source_addr = source_address
             msg.dest_addr = dest_address
+            msg.packet_type = packet_type
             msg.ts = ts
             msg.ts_adj = int(ts_adj)
             msg.rssi = rssi
@@ -425,7 +483,7 @@ class TdoaSerialAnchor:
             msg.data = str(d['d'])
             
             try:
-                if packet_type == 0x20 and source_address == 0x0000:
+                if (packet_type&0x20) == 0x20 and source_address == 0x0000:
                     wireless_clock_pub.publish(msg)
                 else:
                     if tof_mm == 0:
