@@ -409,7 +409,7 @@ class TdoaSerialAnchor:
 
             try:
                 ts = int(d['ts'],16)
-                rssi = int(d['rssi'],10)
+                rssi = d['rssi']
                 if len(d['d']) > 1024: continue;
             except (KeyError,TypeError,ValueError):
                 print(d)
@@ -456,7 +456,7 @@ class TdoaSerialAnchor:
             tof_mm = 0
             try:
                 tof = int(d['tof'],16)
-                tof_mm = int(d['tof_mm'],10)
+                tof_mm = d['tof_mm']
                 rospy.loginfo("TOF Offset: 0x%X <-> 0x%X 0x%X (%.0fmm)", source_address, dest_address, tof, tof_mm)
                 if source_address == 0x0000 and dest_address == self.id and tof_mm < 300000:
                     self.lc.tof_offset = tof/1000.0
